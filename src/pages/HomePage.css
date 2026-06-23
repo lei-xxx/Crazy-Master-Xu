@@ -1,0 +1,19 @@
+.home-magnetic-button {
+  --home-button-dock-x: 0px;
+  --home-button-dock-y: 0px;
+  --home-button-dock-scale: 1;
+  transform: translate3d(var(--home-button-dock-x), var(--home-button-dock-y), 0) scale(var(--home-button-dock-scale));
+  transform-origin: 50% 50%;
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-magnetic-button {
+    transition: none;
+  }
+}

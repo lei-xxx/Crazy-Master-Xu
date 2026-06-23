@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>人员物流管理系统 - Crazy Xu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        overflow-x: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        background: #000000;
+        color: #ffffff;
+        font-family: "Poppins", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar {
+        display: none;
+      }
+
+      body {
+        background-image:
+          url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.075'/%3E%3C/svg%3E"),
+          radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.018), transparent 28%),
+          radial-gradient(circle at 84% 22%, rgba(255, 255, 255, 0.014), transparent 24%);
+        background-size: 180px 180px, 100% 100%, 100% 100%;
+        background-blend-mode: screen, normal, normal;
+      }
+
+      .top-blur {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 55;
+        width: 100%;
+        height: 7rem;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.92), transparent);
+        pointer-events: none;
+      }
+
+      .back-button {
+        position: fixed;
+        top: 40px;
+        left: 32px;
+        z-index: 80;
+        display: inline-flex;
+        min-width: 132px;
+        height: 56px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 999px;
+        background: transparent;
+        color: #ffffff;
+        cursor: pointer;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        transition:
+          color 220ms ease,
+          border-color 200ms ease,
+          background 200ms ease,
+          transform 200ms ease;
+      }
+
+      .back-button:hover {
+        border-color: #ffffff;
+        background: #ffffff;
+        color: #000000;
+      }
+
+      .back-button:active {
+        transform: scale(0.95);
+      }
+
+      .detail-main {
+        position: relative;
+        z-index: 10;
+        padding-bottom: 80px;
+      }
+
+      .hero {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 176px 0 96px;
+      }
+
+      .container {
+        width: min(1480px, calc(100vw - 64px));
+        margin: 0 auto;
+      }
+
+      .title-wrap {
+        max-width: 980px;
+      }
+
+      h1 {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(40px, 5vw, 72px);
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 0.95;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: clamp(72px, 9vw, 112px);
+      }
+
+      .tag {
+        display: inline-flex;
+        height: 44px;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 999px;
+        padding: 0 28px;
+        color: #ffffff;
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1;
+      }
+
+      .summary {
+        max-width: 760px;
+        margin: 40px 0 0;
+        color: #ffffff;
+        font-size: clamp(18px, 1.6vw, 20px);
+        font-weight: 500;
+        line-height: 1.7;
+      }
+
+      .gallery {
+        width: min(1480px, calc(100vw - 64px));
+        margin: 8px auto 0;
+      }
+
+      .gallery article {
+        overflow: hidden;
+        background: transparent;
+      }
+
+      .gallery img {
+        display: block;
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+      }
+
+      @media (max-width: 767px) {
+        .back-button {
+          top: 24px;
+          left: 20px;
+          min-width: 90px;
+          height: 46px;
+          padding: 0 24px;
+          font-size: 13px;
+        }
+
+        .hero {
+          padding: 132px 0 64px;
+        }
+
+        .container,
+        .gallery {
+          width: calc(100vw - 32px);
+        }
+
+        .tags {
+          margin-top: 56px;
+          gap: 12px;
+        }
+
+        .tag {
+          height: 40px;
+          padding: 0 20px;
+          font-size: 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top-blur"></div>
+    <button class="back-button" type="button" aria-label="Back">Back</button>
+    <main class="detail-main">
+      <section class="hero">
+        <div class="container">
+          <div class="title-wrap">
+            <h1>人员物流管理系统</h1>
+          </div>
+          <div class="tags">
+            <span class="tag">Web Design</span>
+          </div>
+          <p class="summary">
+            该项目聚焦人员与物流协同管理场景，围绕调度流程、任务流转、状态追踪和数据统计建立统一后台体验。设计通过模块化信息组织和清晰操作路径，提升复杂业务在多角色协作中的处理效率。
+          </p>
+        </div>
+      </section>
+      <section class="gallery" id="project-gallery">
+        <article><img src="assets/projects/personnel-logistics-management-system/28.webp" alt="人员物流管理系统 page 01" loading="eager" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/29.webp" alt="人员物流管理系统 page 02" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/31.webp" alt="人员物流管理系统 page 03" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/32.webp" alt="人员物流管理系统 page 04" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/33.webp" alt="人员物流管理系统 page 05" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/34.webp" alt="人员物流管理系统 page 06" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/35.webp" alt="人员物流管理系统 page 07" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/36.webp" alt="人员物流管理系统 page 08" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/37.webp" alt="人员物流管理系统 page 09" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/38.webp" alt="人员物流管理系统 page 10" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/39.webp" alt="人员物流管理系统 page 11" loading="lazy" decoding="async" /></article>
+        <article><img src="assets/projects/personnel-logistics-management-system/40.webp" alt="人员物流管理系统 page 12" loading="lazy" decoding="async" /></article>
+      </section>
+    </main>
+    <script>
+      function runCirclePageTransition(url, originX, originY, fallbackElement) {
+        const previousBodyOverflow = document.body.style.overflow;
+        const triggerRect = fallbackElement?.getBoundingClientRect();
+        const resolvedOriginX = originX ?? (triggerRect ? triggerRect.left + triggerRect.width / 2 : window.innerWidth / 2);
+        const resolvedOriginY = originY ?? (triggerRect ? triggerRect.top + triggerRect.height / 2 : window.innerHeight / 2);
+        const maxRadius = Math.ceil(Math.hypot(
+          Math.max(resolvedOriginX, window.innerWidth - resolvedOriginX),
+          Math.max(resolvedOriginY, window.innerHeight - resolvedOriginY)
+        ));
+        const finalSize = maxRadius * 2;
+        const transitionCircle = document.createElement("div");
+        const transitionMark = document.createElement("img");
+
+        document.body.style.overflow = "hidden";
+        transitionCircle.style.cssText = [
+          "position:fixed",
+          `left:${resolvedOriginX}px`,
+          `top:${resolvedOriginY}px`,
+          "width:1px",
+          "height:1px",
+          "z-index:90",
+          "border-radius:9999px",
+          "background:#000",
+          "pointer-events:none",
+          "overflow:hidden",
+          "opacity:1",
+          "will-change:left,top,width,height,opacity",
+          "transition:left 620ms cubic-bezier(.22,1,.36,1), top 620ms cubic-bezier(.22,1,.36,1), width 620ms cubic-bezier(.22,1,.36,1), height 620ms cubic-bezier(.22,1,.36,1), opacity 280ms cubic-bezier(.22,1,.36,1)"
+        ].join(";");
+        transitionMark.src = "assets/transition-assets/xulei-transition.png";
+        transitionMark.alt = "";
+        transitionMark.style.cssText = [
+          "position:fixed",
+          "left:50%",
+          "top:50%",
+          "z-index:91",
+          "width:min(69.6vw,320px)",
+          "height:auto",
+          "transform:translate(-50%,-50%) scale(1)",
+          "opacity:1",
+          "pointer-events:none",
+          "will-change:opacity,transform",
+          "transition:opacity 280ms cubic-bezier(.22,1,.36,1), transform 280ms cubic-bezier(.22,1,.36,1)"
+        ].join(";");
+
+        document.body.appendChild(transitionCircle);
+        document.body.appendChild(transitionMark);
+
+        window.requestAnimationFrame(() => {
+          transitionCircle.style.left = `${resolvedOriginX - maxRadius}px`;
+          transitionCircle.style.top = `${resolvedOriginY - maxRadius}px`;
+          transitionCircle.style.width = `${finalSize}px`;
+          transitionCircle.style.height = `${finalSize}px`;
+        });
+
+        window.setTimeout(() => {
+          window.location.href = url;
+        }, 520);
+      }
+
+      const backButton = document.querySelector(".back-button");
+      backButton.addEventListener("click", (event) => {
+        runCirclePageTransition("index.html#portfolio", event.clientX, event.clientY, backButton);
+      });
+    </script>
+  </body>
+</html>

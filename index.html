@@ -1,0 +1,2000 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crazy Master Xu</title>
+    <link rel="icon" type="image/svg+xml" href="/xulei-rounded.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --background: #000000;
+        --foreground: #ffffff;
+        --sky-300: #ffffff;
+        --gray-300: #b3b3b3;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        overflow-x: clip;
+        overflow-y: visible;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+      }
+
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar {
+        display: none;
+      }
+
+      .hero {
+        position: relative;
+        width: 100%;
+        min-height: 0;
+        overflow: visible;
+        background: var(--background);
+      }
+
+      #scene {
+        position: fixed;
+        inset: -12vmax;
+        z-index: 0;
+        width: auto;
+        height: auto;
+        transform: translate3d(var(--scene-x, 0), var(--scene-y, 0), 0)
+          scale(var(--scene-scale, 1));
+        transform-origin: 50% 50%;
+        will-change: transform;
+      }
+
+      .gradient {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        background: linear-gradient(to top, #000000, rgba(0, 0, 0, 0), transparent);
+        pointer-events: none;
+      }
+
+      .radial-mask {
+        position: fixed;
+        inset: 0;
+        z-index: 11;
+        pointer-events: none;
+        opacity: var(--radial-mask-opacity, 0);
+        background: radial-gradient(
+          ellipse 42% 31% at 66% 50%,
+          rgba(0, 0, 0, 1) 0%,
+          rgba(0, 0, 0, 1) 82%,
+          rgba(0, 0, 0, 0) 135%
+        );
+      }
+
+      .site-nav {
+        position: fixed;
+        top: 32px;
+        left: 0;
+        z-index: 70;
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        padding: 0 32px;
+        color: #ffffff;
+        transition:
+          opacity 300ms ease,
+          transform 300ms ease;
+      }
+
+      .site-nav.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-112%);
+      }
+
+      .site-nav.is-footer-mode {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-112%);
+      }
+
+      .site-nav-inner {
+        display: flex;
+        width: min(100%, 1280px);
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+      }
+
+      .site-logo {
+        --logo-dock-x: 0px;
+        --logo-dock-y: 0px;
+        --logo-dock-scale: 1;
+        display: inline-flex;
+        align-items: center;
+        transform: translate3d(var(--logo-dock-x), var(--logo-dock-y), 0)
+          scale(var(--logo-dock-scale));
+        transform-origin: 50% 50%;
+        transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+      }
+
+      .site-logo img {
+        display: block;
+        height: 48px;
+        width: auto;
+      }
+
+      .site-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 48px;
+        margin-left: auto;
+      }
+
+      .site-nav-link {
+        --nav-link-dock-x: 0px;
+        --nav-link-dock-y: 0px;
+        --nav-link-dock-scale: 1;
+        display: inline-flex;
+        height: 44px;
+        align-items: center;
+        overflow: visible;
+        color: inherit;
+        font-size: 18px;
+        line-height: 44px;
+        text-decoration: none;
+        transform: translate3d(var(--nav-link-dock-x), var(--nav-link-dock-y), 0)
+          scale(var(--nav-link-dock-scale));
+        transform-origin: 50% 50%;
+        transition:
+          color 200ms ease,
+          transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+      }
+
+      .site-nav-link:hover .site-nav-line {
+        color: #ffffff;
+      }
+
+      .site-nav-track {
+        display: flex;
+        height: 44px;
+        flex-direction: column;
+      }
+
+      .site-nav-line {
+        display: flex;
+        height: 44px;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.42);
+        font-size: 18px;
+        line-height: 44px;
+        white-space: nowrap;
+      }
+
+      .site-nav-line:last-child {
+        display: none;
+      }
+
+      .site-menu-button {
+        display: none;
+      }
+
+      .tablet-menu {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        visibility: hidden;
+        overflow: hidden;
+        padding: 14px;
+        color: #ffffff;
+        pointer-events: none;
+      }
+
+      .tablet-menu.is-open {
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      .tablet-panel {
+        width: 82vw;
+        margin-left: auto;
+        opacity: 1;
+        transform: translate3d(110%, 0, 0) rotate(0deg);
+        will-change: transform, opacity;
+      }
+
+      .tablet-menu-card {
+        height: calc((100vh - 36px) * 0.72);
+        min-height: 0;
+        border-radius: 18px;
+        background: #111111;
+        padding: 116px 28px 40px;
+      }
+
+      .tablet-menu-card nav {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 42px;
+      }
+
+      .tablet-link {
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 24px;
+        font-weight: 500;
+        line-height: 1;
+        text-decoration: none;
+        text-transform: lowercase;
+        opacity: 0;
+        transform: translateX(-18px);
+      }
+
+      .tablet-link.is-active {
+        color: #ffffff;
+      }
+
+      .tablet-project-card {
+        height: 72px;
+        margin-top: 16px;
+        border-radius: 18px;
+      }
+
+      .tablet-cta {
+        display: flex;
+        height: 72px;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 22px;
+        background: #ff5825;
+        padding: 0 28px;
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 500;
+        text-decoration: none;
+        text-transform: lowercase;
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      .tablet-cta svg,
+      .portfolio-project-open svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .content {
+        position: relative;
+        z-index: 20;
+        display: flex;
+        height: 100vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 0 16px 80px;
+        text-align: center;
+        animation: fade-in-long 1200ms ease both;
+      }
+
+      .copy {
+        --content-dock-x: 0px;
+        --content-dock-y: 0px;
+        --content-dock-scale: 1;
+        max-width: 768px;
+        opacity: var(--intro-opacity, 1);
+        transform:
+          translate3d(
+            var(--content-dock-x),
+            calc(((1 - var(--intro-opacity, 1)) * 18px) + var(--content-dock-y)),
+            0
+          )
+          scale(var(--content-dock-scale));
+        transform-origin: 50% 50%;
+        transition:
+          opacity 180ms ease-out,
+          transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+      }
+
+      h1 {
+        margin: 0;
+        color: #ffffff;
+        font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+        font-size: 18px;
+        font-weight: 500;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin: 16px 0 0;
+        color: #ffffff;
+        font-size: clamp(32px, 6vw, 56px);
+        font-weight: 500;
+        line-height: 1.08;
+      }
+
+      .description {
+        max-width: 576px;
+        margin: 24px auto 0;
+        color: #ffffff;
+        font-size: 16px;
+        line-height: 1.7;
+      }
+
+      .about-panel {
+        --content-dock-x: 0px;
+        --content-dock-y: 0px;
+        --content-dock-scale: 1;
+        position: relative;
+        z-index: 19;
+        min-height: 100vh;
+        width: min(52vw, 760px);
+        margin: 0 clamp(24px, 6vw, 88px) 0 auto;
+        padding-top: clamp(168px, 25vh, 280px);
+        color: #ffffff;
+        font-size: clamp(20px, 3vw, 34px);
+        font-weight: 450;
+        line-height: 1.42;
+        opacity: 0;
+        pointer-events: none;
+        transform:
+          translate3d(var(--content-dock-x), calc(28px + var(--content-dock-y)), 0)
+          scale(var(--content-dock-scale));
+        transform-origin: 50% 50%;
+        transition:
+          opacity 120ms ease-out,
+          transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+      }
+
+      .about-panel.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+        transform:
+          translate3d(var(--content-dock-x), var(--content-dock-y), 0)
+          scale(var(--content-dock-scale));
+      }
+
+      .about-panel .text-word {
+        display: inline-block;
+        opacity: 0;
+        filter: blur(0);
+        transform: translateY(20px);
+        transition:
+          opacity 360ms ease,
+          filter 360ms ease,
+          transform 360ms ease;
+        white-space: pre;
+      }
+
+      .about-panel.is-visible .text-word {
+        opacity: 1;
+        transform: translateY(0);
+        transition-delay: calc(var(--word-index) * 54ms);
+      }
+
+      .about-panel.is-exiting .text-word {
+        opacity: 0;
+        filter: blur(10px);
+        transform: translateY(-24px);
+        transition-delay: calc(var(--word-index) * 12ms);
+      }
+
+      .work-panel {
+        --work-enter-y: 0px;
+        position: relative;
+        z-index: 21;
+        width: min(86vw, 1280px);
+        margin: 0 auto;
+        padding: 0;
+        overflow: visible;
+        scrollbar-width: none;
+        color: #ffffff;
+        opacity: var(--work-opacity, 0);
+        pointer-events: none;
+        transition: opacity 120ms linear;
+        will-change: opacity;
+      }
+
+      .work-panel.is-visible {
+        pointer-events: auto;
+      }
+
+      .work-sticky {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding: clamp(56px, 8vh, 96px) 0;
+        transform: translateY(var(--work-enter-y));
+        will-change: transform;
+      }
+
+      .site-footer {
+        position: relative;
+        z-index: 22;
+        width: min(86vw, 1280px);
+        margin: 0 auto;
+        padding: clamp(80px, 12vh, 128px) 0 clamp(32px, 4vh, 44px);
+        color: #ffffff;
+        pointer-events: auto;
+      }
+
+      .site-footer-inner {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1.35fr;
+        gap: clamp(56px, 8vw, 128px);
+      }
+
+      .site-footer-title,
+      .site-footer-heading {
+        margin: 0 0 32px;
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 500;
+        line-height: 1;
+      }
+
+      .site-footer-heading {
+        font-size: 18px;
+      }
+
+      .site-footer-copy,
+      .site-footer-contact-item,
+      .site-footer-link,
+      .site-footer-service,
+      .site-footer-bottom {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 16px;
+        font-weight: 300;
+        line-height: 1.55;
+      }
+
+      .site-footer-copy {
+        max-width: 450px;
+        margin: 0 0 34px;
+      }
+
+      .site-footer-contact,
+      .site-footer-list {
+        display: grid;
+        gap: 18px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .site-footer-contact-item,
+      .site-footer-link,
+      .site-footer-service {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        text-decoration: none;
+      }
+
+      .site-footer-icon {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 auto;
+        color: #ffffff;
+      }
+
+      .site-footer-link {
+        transition: color 180ms ease;
+      }
+
+      .site-footer-link:hover {
+        color: #ffffff;
+      }
+
+      .site-footer-rule {
+        height: 1px;
+        margin: 38px 0 30px;
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .site-footer-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+        font-size: 14px;
+      }
+
+      .site-footer-legal {
+        display: flex;
+        gap: 28px;
+      }
+
+      .work-panel::-webkit-scrollbar {
+        display: none;
+      }
+
+      .work-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: clamp(32px, 5vw, 72px);
+      }
+
+      .work-title,
+      .portfolio-filter,
+      .portfolio-project-title,
+      .portfolio-project-copy,
+      .portfolio-project-tag,
+      .portfolio-project-cta-dock {
+        font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .work-title {
+        max-width: 620px;
+        margin: 0;
+        font-size: clamp(28px, 2.45vw, 40px);
+        font-weight: 500;
+        line-height: 1.16;
+        text-align: left;
+      }
+
+      .work-title span {
+        color: #ff5825;
+      }
+
+      .work-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 5px;
+        color: rgba(255, 255, 255, 0.62);
+        font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+        font-size: clamp(18px, 1.25vw, 22px);
+        font-weight: 500;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: color 200ms ease;
+      }
+
+      .work-link:hover {
+        color: #ffffff;
+      }
+
+      .work-link-icon {
+        display: block;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 auto;
+      }
+
+      .work-divider {
+        height: 1px;
+        margin: clamp(18px, 2.6vh, 32px) 0 clamp(28px, 4.4vh, 52px);
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .portfolio-intro {
+        margin: 22px auto 0;
+        max-width: 900px;
+        color: rgba(255, 255, 255, 0.56);
+        font-size: clamp(15px, 1.4vw, 20px);
+        font-weight: 400;
+        line-height: 1.7;
+        text-align: center;
+      }
+
+      .portfolio-filter-bar {
+        margin: clamp(34px, 5vh, 56px) auto 0;
+        overflow-x: auto;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        padding-bottom: clamp(24px, 4vh, 40px);
+        scrollbar-width: none;
+      }
+
+      .portfolio-filter-bar::-webkit-scrollbar {
+        display: none;
+      }
+
+      .portfolio-filters {
+        display: flex;
+        width: max-content;
+        align-items: center;
+        gap: clamp(20px, 2vw, 32px);
+      }
+
+      .portfolio-filter {
+        --filter-dock-x: 0px;
+        --filter-dock-scale: 1;
+        border: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.28);
+        cursor: pointer;
+        font-size: clamp(18px, 1.25vw, 24px);
+        font-weight: 400;
+        line-height: 1;
+        padding: 0;
+        transform: translate3d(var(--filter-dock-x), 0, 0)
+          scale(var(--filter-dock-scale));
+        transform-origin: 50% 100%;
+        transition:
+          color 200ms ease,
+          transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+        white-space: nowrap;
+        will-change: transform;
+      }
+
+      .portfolio-filter.is-active,
+      .portfolio-filter:hover {
+        color: #ffffff;
+      }
+
+      .portfolio-filter-separator {
+        display: block;
+        width: 24px;
+        height: 1px;
+        flex: 0 0 auto;
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      .portfolio-list {
+        margin-top: clamp(40px, 7vh, 84px);
+        display: grid;
+        gap: clamp(56px, 9vh, 112px);
+      }
+
+      .portfolio-project {
+        display: grid;
+        grid-template-columns: 2.6fr 2fr;
+        align-items: center;
+        gap: clamp(32px, 5vw, 72px);
+        opacity: 0;
+        transform: translateY(42px);
+        transition:
+          opacity 700ms ease,
+          transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .work-panel.is-visible .portfolio-project {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .portfolio-project:nth-child(2) {
+        transition-delay: 90ms;
+      }
+
+      .portfolio-project:nth-child(3) {
+        transition-delay: 180ms;
+      }
+
+      .portfolio-project:nth-child(even) {
+        grid-template-columns: 2fr 2.6fr;
+      }
+
+      .portfolio-project:nth-child(even) .portfolio-project-image-dock {
+        order: 2;
+      }
+
+      .portfolio-project:nth-child(even) .portfolio-project-details {
+        order: 1;
+      }
+
+      .portfolio-project.is-hidden {
+        display: none;
+      }
+
+      .portfolio-project-image-dock {
+        --project-image-dock-x: 0px;
+        --project-image-dock-y: 0px;
+        --project-image-dock-scale: 1;
+        display: block;
+        width: 100%;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        padding: 0;
+        text-align: left;
+        transform: translate3d(
+            var(--project-image-dock-x),
+            var(--project-image-dock-y),
+            0
+          )
+          scale(var(--project-image-dock-scale));
+        transform-origin: 50% 50%;
+        transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+      }
+
+      .portfolio-project-image {
+        display: block;
+        width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+        transition:
+          filter 320ms cubic-bezier(0.22, 1, 0.36, 1),
+          transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .portfolio-project-image-dock:hover .portfolio-project-image {
+        filter: brightness(1.06);
+      }
+
+      .portfolio-project-details {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .portfolio-project-tags {
+        display: flex;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .portfolio-project-tag-icon {
+        display: inline-flex;
+        width: 22px;
+        height: 22px;
+        color: #ffffff;
+      }
+
+      .portfolio-project-tag {
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .portfolio-project-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .portfolio-project-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(24px, 2.2vw, 36px);
+        font-weight: 600;
+        line-height: 1;
+      }
+
+      .portfolio-project-open {
+        display: none;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        border-radius: 999px;
+        color: #ffffff;
+      }
+
+      .portfolio-project-copy {
+        display: -webkit-box;
+        max-width: 760px;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 4;
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 2.1;
+      }
+
+      .portfolio-project-cta-wrap {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .portfolio-project-cta-dock {
+        --project-cta-dock-x: 0px;
+        --project-cta-dock-y: 0px;
+        --project-cta-dock-scale: 1;
+        display: inline-flex;
+        width: max-content;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        margin-top: 30px;
+        overflow: hidden;
+        border: 1px solid #ffffff;
+        border-radius: 999px;
+        background: transparent;
+        color: #ffffff;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        gap: 10px;
+        padding: 0 24px;
+        transform: translate3d(
+            var(--project-cta-dock-x),
+            var(--project-cta-dock-y),
+            0
+          )
+          scale(var(--project-cta-dock-scale));
+        transform-origin: 50% 50%;
+        transition:
+          background-color 200ms ease,
+          color 200ms ease,
+          border-color 200ms ease,
+          transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+      }
+
+      .portfolio-project-cta-dock:hover {
+        border-color: #ffffff;
+        background: #ffffff;
+        color: #000000;
+      }
+
+      .project-rotator {
+        display: block;
+      }
+
+      .project-rotator-list {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-auto-rows: clamp(150px, 13vw, 230px);
+        gap: clamp(18px, 2vw, 28px);
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+
+      .project-rotator-list::-webkit-scrollbar {
+        display: none;
+      }
+
+      .project-rotator-item {
+        position: relative;
+        display: flex;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 8px;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate3d(0, 0, 0) scaleX(var(--project-grid-scale-x, 1));
+        transform-origin: var(--project-grid-origin, 50% 50%);
+        transition:
+          transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+          filter 260ms ease;
+        backface-visibility: hidden;
+        will-change: transform;
+        contain: layout paint;
+      }
+
+      @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+        .project-rotator-list.is-hovering-col-1 .project-rotator-item:nth-child(3n + 1),
+        .project-rotator-list.is-hovering-col-2 .project-rotator-item:nth-child(3n + 2),
+        .project-rotator-list.is-hovering-col-3 .project-rotator-item:nth-child(3n) {
+          --project-grid-scale-x: 1.03;
+          --project-grid-origin: 50% 50%;
+        }
+
+        .project-rotator-list.is-hovering-col-1 .project-rotator-item:nth-child(3n + 2),
+        .project-rotator-list.is-hovering-col-2 .project-rotator-item:nth-child(3n + 1) {
+          --project-grid-scale-x: 0.985;
+          --project-grid-origin: 0% 50%;
+        }
+
+        .project-rotator-list.is-hovering-col-2 .project-rotator-item:nth-child(3n),
+        .project-rotator-list.is-hovering-col-3 .project-rotator-item:nth-child(3n + 2) {
+          --project-grid-scale-x: 0.985;
+          --project-grid-origin: 100% 50%;
+        }
+      }
+
+      .project-rotator-item:hover {
+        z-index: 2;
+        filter: brightness(1.05);
+      }
+
+      .project-rotator-image-dock {
+        display: inline-flex;
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 8px;
+        clip-path: inset(0 round 8px);
+        background: transparent;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+      }
+
+      .project-rotator-image {
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        max-height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+        background: transparent;
+      }
+
+      .home-content-dock {
+        --content-dock-x: 0px;
+        --content-dock-y: 0px;
+        --content-dock-scale: 1;
+        transform: translate3d(var(--content-dock-x), var(--content-dock-y), 0)
+          scale(var(--content-dock-scale));
+        transform-origin: 50% 50%;
+        transition:
+          color 180ms ease,
+          opacity 180ms ease,
+          transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+      }
+
+      .site-footer-bottom > .home-content-dock {
+        display: inline-flex;
+      }
+
+      @keyframes fade-in-long {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (min-width: 768px) {
+        .content {
+          padding-bottom: 128px;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .about-panel {
+          top: 18vh;
+          right: 20px;
+          left: 20px;
+          width: auto;
+          font-size: clamp(20px, 7vw, 34px);
+        }
+
+        .work-panel {
+          width: calc(100vw - 40px);
+        }
+
+        .work-title {
+          font-size: clamp(34px, 12vw, 48px);
+          text-align: left;
+        }
+
+        .portfolio-intro {
+          display: none;
+        }
+
+        .portfolio-filter-bar {
+          margin-top: 36px;
+          padding-bottom: 26px;
+        }
+
+        .portfolio-project {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+
+        .portfolio-project-image-dock {
+          order: 1;
+          width: 100%;
+        }
+
+        .portfolio-project-details {
+          order: 2;
+        }
+
+        .portfolio-project-tags,
+        .portfolio-project-copy,
+        .portfolio-project-cta-dock {
+          display: none;
+        }
+
+        .portfolio-project-title-row {
+          margin-bottom: 0;
+        }
+
+        .portfolio-project-title {
+          font-size: 22px;
+        }
+
+        .portfolio-project-open {
+          display: inline-flex;
+        }
+
+        .work-header {
+          align-items: flex-start;
+        }
+
+        .work-title {
+          font-size: clamp(22px, 8vw, 34px);
+        }
+
+        .work-link {
+          font-size: 18px;
+        }
+
+        .work-divider {
+          margin: 40px 0 32px;
+        }
+
+        .project-rotator-list {
+          grid-template-columns: 1fr;
+          grid-auto-rows: clamp(180px, 52vw, 260px);
+          gap: 20px;
+        }
+      }
+
+      @media (max-width: 1023px) {
+        .site-nav {
+          top: 24px;
+          padding: 0 16px;
+        }
+
+        .site-nav-inner {
+          justify-content: flex-end;
+        }
+
+        .site-logo,
+        .site-nav-links {
+          display: none;
+        }
+
+        .site-menu-button {
+          display: inline-flex;
+          width: 46px;
+          height: 46px;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(255, 255, 255, 0.75);
+          border-radius: 999px;
+          background: transparent;
+          color: #ffffff;
+          cursor: pointer;
+          transition:
+            background 220ms ease,
+            color 220ms ease,
+            transform 220ms ease;
+        }
+
+        .site-menu-button.is-open {
+          background: #ffffff;
+          color: #000000;
+        }
+
+        .site-menu-button svg {
+          width: 24px;
+          height: 24px;
+          transition: transform 300ms ease;
+        }
+
+        .site-menu-button.is-open svg {
+          transform: rotate(360deg);
+        }
+
+      }
+
+      @media (min-width: 768px) and (max-width: 1023px) {
+        .project-rotator-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-auto-rows: clamp(150px, 22vw, 210px);
+        }
+
+        .tablet-menu {
+          padding: 18px;
+        }
+
+        .tablet-panel {
+          width: 48vw;
+        }
+
+        .tablet-menu-card {
+          padding: 160px 48px 56px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .site-logo,
+        .site-nav-link,
+        .copy,
+        .about-panel,
+        .home-content-dock,
+        .portfolio-filter,
+        .portfolio-project,
+        .portfolio-project-image-dock,
+        .portfolio-project-image,
+        .portfolio-project-cta-dock {
+          transition: none;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.164.1/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header class="site-nav" aria-label="Primary navigation">
+      <div class="site-nav-inner">
+        <a class="site-logo" href="#top" aria-label="Crazy Xu Home">
+          <img src="assets/xulei-wordmark-logo.png" alt="Crazy Xu" />
+        </a>
+        <nav class="site-nav-links" aria-label="Desktop navigation">
+          <a class="site-nav-link" href="#top">
+            <span class="site-nav-track">
+              <span class="site-nav-line">Home</span>
+              <span class="site-nav-line">Home</span>
+            </span>
+          </a>
+          <a class="site-nav-link" href="/portfolio/">
+            <span class="site-nav-track">
+              <span class="site-nav-line">Portfolio</span>
+              <span class="site-nav-line">Portfolio</span>
+            </span>
+          </a>
+          <a class="site-nav-link" href="/contact/">
+            <span class="site-nav-track">
+              <span class="site-nav-line">Contact</span>
+              <span class="site-nav-line">Contact</span>
+            </span>
+          </a>
+        </nav>
+        <button class="site-menu-button" type="button" aria-label="Open Menu">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="tablet-menu" aria-hidden="true">
+      <aside class="tablet-panel tablet-menu-card" aria-label="Mobile menu">
+        <nav>
+          <a class="tablet-link is-active" href="#top">home</a>
+          <a class="tablet-link" href="/portfolio/">portfolio</a>
+          <a class="tablet-link" href="/contact/">contact</a>
+        </nav>
+      </aside>
+      <aside class="tablet-panel tablet-project-card" aria-label="Project shortcut">
+        <a class="tablet-cta" href="/portfolio/">
+          <span>projects</span>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </aside>
+    </div>
+    <section id="top" class="hero" role="banner">
+      <div id="scene"></div>
+      <div class="gradient"></div>
+      <div class="radial-mask"></div>
+      <div class="content">
+        <div class="copy">
+          <h1>UI/UX Design</h1>
+          <p class="subtitle">This is Crazy Xu's personal website.</p>
+          <p class="description">
+            Passionate about design, art, and storytelling. Every project tells a story.
+          </p>
+        </div>
+      </div>
+      <p class="about-panel" aria-label="I&rsquo;m a UI/UX designer who enjoys making products feel simple, useful, and a little more human. I like playful details, clean systems, and the occasional weird idea that somehow works.">
+        <span class="text-word" aria-hidden="true" style="--word-index: 0">I&rsquo;m&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 1">a&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 2">UI/UX&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 3">designer&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 4">who&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 5">enjoys&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 6">making&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 7">products&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 8">feel&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 9">simple,&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 10">useful,&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 11">and&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 12">a&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 13">little&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 14">more&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 15">human.&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 16">I&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 17">like&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 18">playful&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 19">details,&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 20">clean&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 21">systems,&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 22">and&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 23">the&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 24">occasional&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 25">weird&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 26">idea&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 27">that&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 28">somehow&nbsp;</span><span class="text-word" aria-hidden="true" style="--word-index: 29">works.</span>
+      </p>
+      <section id="portfolio" class="work-panel" aria-label="Selected projects">
+        <div class="work-sticky">
+          <div class="work-header">
+            <h2 class="work-title home-content-dock">Selected projects, from idea to interface</h2>
+            <a class="work-link home-content-dock" href="/portfolio/" aria-label="See all selected projects">
+              See all
+              <svg class="work-link-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+          <div class="work-divider"></div>
+          <div class="project-rotator" aria-label="Selected project previews">
+            <div class="project-rotator-list"></div>
+          </div>
+        </div>
+      </section>
+      <footer class="site-footer" aria-label="Footer">
+        <div class="site-footer-inner">
+          <section>
+            <h3 class="site-footer-title home-content-dock">Crazy Master Xu</h3>
+            <p class="site-footer-copy home-content-dock">
+              Welcome to my portfolio website of design works, let's explore the stories of inspiration through creation together.
+            </p>
+            <div class="site-footer-contact">
+              <div class="site-footer-contact-item home-content-dock">
+                <svg class="site-footer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 6h16v12H4V6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                  <path d="m4 7 8 6 8-6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+                <span>xuleixulei2021@qq.com</span>
+              </div>
+              <div class="site-footer-contact-item home-content-dock">
+                <svg class="site-footer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6.6 3.8 9.3 4.4l1.2 4-1.8 1.2c.9 1.9 2.4 3.4 4.3 4.4l1.3-1.8 4 1.2.6 2.7c.2.8-.2 1.6-1 1.9-2 .8-4.8.2-7.5-1.5-2.2-1.4-4.1-3.3-5.5-5.5-1.7-2.7-2.3-5.5-1.5-7.5.3-.8 1.1-1.2 1.9-1Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+                <span>18406593255</span>
+              </div>
+              <div class="site-footer-contact-item home-content-dock">
+                <svg class="site-footer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                  <path d="M12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <span>China, Shenzhen</span>
+              </div>
+              <a class="site-footer-link home-content-dock" href="https://www.zcool.com.cn/u/24205250" target="_blank" rel="noreferrer">
+                <svg class="site-footer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M7 17 17 7M17 7H8M17 7v9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>zcool.com.cn/u/24205250</span>
+              </a>
+            </div>
+          </section>
+          <nav aria-label="Quick links">
+            <h4 class="site-footer-heading home-content-dock">Quick Links</h4>
+            <ul class="site-footer-list">
+              <li><a class="site-footer-link home-content-dock" href="/">Home</a></li>
+              <li><a class="site-footer-link home-content-dock" href="/contact/">Contact</a></li>
+              <li><a class="site-footer-link home-content-dock" href="/portfolio/">Portfolio</a></li>
+            </ul>
+          </nav>
+          <section>
+            <h4 class="site-footer-heading home-content-dock">Services</h4>
+            <ul class="site-footer-list">
+              <li><span class="site-footer-service home-content-dock">Full-stack UI/UX design (app, web, data visualization)</span></li>
+              <li><span class="site-footer-service home-content-dock">B-end complex system design</span></li>
+              <li><span class="site-footer-service home-content-dock">Motion Effect Design</span></li>
+            </ul>
+          </section>
+        </div>
+        <div class="site-footer-rule"></div>
+        <div class="site-footer-bottom">
+          <span class="home-content-dock">© 2026 Crazy Master Xu. All rights reserved.</span>
+          <div class="site-footer-legal">
+            <a class="site-footer-link home-content-dock" href="/privacy/">Privacy Policy</a>
+            <a class="site-footer-link home-content-dock" href="/terms/">Terms of Service</a>
+          </div>
+        </div>
+      </footer>
+    </section>
+
+    <script type="module">
+      import * as THREE from "https://unpkg.com/three@0.164.1/build/three.module.js";
+      import { projects } from "/src/data/projects.ts";
+
+      const mount = document.querySelector("#scene");
+      const aboutPanel = document.querySelector(".about-panel");
+      const workPanel = document.querySelector(".work-panel");
+      const siteNav = document.querySelector(".site-nav");
+      const siteLogo = document.querySelector(".site-logo");
+      const siteNavLinks = [...document.querySelectorAll(".site-nav-link")];
+      const menuButton = document.querySelector(".site-menu-button");
+      const tabletMenu = document.querySelector(".tablet-menu");
+      const tabletPanels = [...document.querySelectorAll(".tablet-panel")];
+      const tabletLinks = [...document.querySelectorAll(".tablet-link")];
+      const tabletCta = document.querySelector(".tablet-cta");
+      const projectRotatorList = document.querySelector(".project-rotator-list");
+      const rootStyles = getComputedStyle(document.documentElement);
+      const documentStyle = document.documentElement.style;
+      const selectedProjectSlugs = [
+        "personnel-logistics-management-system",
+        "petro-mesh-international-dmcc",
+        "personnel-positioning-system",
+        "smart-park-management-system",
+        "human-resources-management-system",
+        "customer-management-system"
+      ];
+      const selectedProjects = selectedProjectSlugs
+        .map((slug) => projects.find((project) => project.slug === slug))
+        .filter(Boolean);
+      let viewportHeight = window.innerHeight || 1;
+      const rootVariableCache = new Map();
+      const aboutRevealStartProgress = 0.82;
+
+      function escapeAttribute(value) {
+        return value
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function renderSelectedProjects() {
+        projectRotatorList.innerHTML = selectedProjects
+          .map((project, index) => {
+            const image = project.cover || project.images.desktop;
+            const url = `/portfolio/?project=${encodeURIComponent(project.slug)}`;
+
+            return `
+              <article class="project-rotator-item" data-project-index="${index}">
+                <button class="portfolio-project-image-dock project-rotator-image-dock" type="button" data-project-url="${url}" aria-label="View ${escapeAttribute(project.title)} project">
+                  <img
+                    class="portfolio-project-image project-rotator-image"
+                    src="${image}"
+                    alt="${escapeAttribute(project.title)} project preview"
+                    loading="eager"
+                    decoding="async"
+                  />
+                </button>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      renderSelectedProjects();
+      const pendingScrollRestore = window.sessionStorage.getItem("xulei-pending-scroll-restore");
+      if (pendingScrollRestore) {
+        try {
+          const restoreState = JSON.parse(pendingScrollRestore);
+          const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          const shouldRestore =
+            restoreState?.returnTo === currentPath ||
+            (restoreState?.returnTo === "/" && currentPath === "/");
+
+          if (shouldRestore && typeof restoreState.scrollY === "number") {
+            window.sessionStorage.removeItem("xulei-pending-scroll-restore");
+            window.requestAnimationFrame(() => {
+              window.scrollTo({ top: restoreState.scrollY, left: 0, behavior: "auto" });
+            });
+          }
+        } catch {
+          window.sessionStorage.removeItem("xulei-pending-scroll-restore");
+        }
+      }
+      selectedProjects.forEach((project) => {
+        const image = new Image();
+        image.decoding = "async";
+        image.src = project.cover || project.images.desktop;
+      });
+
+      const projectImageDocks = [...document.querySelectorAll(".project-rotator-image-dock")];
+      const projectRotatorItems = [...document.querySelectorAll(".project-rotator-item")];
+      const homeContentDocks = [
+        document.querySelector(".copy"),
+        aboutPanel,
+        ...document.querySelectorAll(".home-content-dock")
+      ].filter(Boolean);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        mount.clientWidth / mount.clientHeight,
+        0.1,
+        1000
+      );
+      camera.position.z = 3;
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      renderer.setSize(mount.clientWidth, mount.clientHeight);
+      mount.appendChild(renderer.domElement);
+
+      const geometry = new THREE.IcosahedronGeometry(1.2, 48);
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+          pointLightPos: { value: new THREE.Vector3(0, 0, 5) },
+          color: {
+            value: new THREE.Color(
+              rootStyles.getPropertyValue("--sky-300").trim()
+            )
+          },
+          opacity: { value: 1 }
+        },
+        vertexShader: `
+          uniform float time;
+          varying vec3 vNormal;
+          varying vec3 vPosition;
+
+          vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+          vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+          vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
+          vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+          float snoise(vec3 v) {
+            const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
+            const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+            vec3 i = floor(v + dot(v, C.yyy));
+            vec3 x0 = v - i + dot(i, C.xxx);
+            vec3 g = step(x0.yzx, x0.xyz);
+            vec3 l = 1.0 - g;
+            vec3 i1 = min(g.xyz, l.zxy);
+            vec3 i2 = max(g.xyz, l.zxy);
+            vec3 x1 = x0 - i1 + C.xxx;
+            vec3 x2 = x0 - i2 + C.yyy;
+            vec3 x3 = x0 - D.yyy;
+            i = mod289(i);
+            vec4 p = permute(permute(permute(
+              i.z + vec4(0.0, i1.z, i2.z, 1.0))
+              + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+              + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+            float n_ = 0.142857142857;
+            vec3 ns = n_ * D.wyz - D.xzx;
+            vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+            vec4 x_ = floor(j * ns.z);
+            vec4 y_ = floor(j - 7.0 * x_);
+            vec4 x = x_ * ns.x + ns.yyyy;
+            vec4 y = y_ * ns.x + ns.yyyy;
+            vec4 h = 1.0 - abs(x) - abs(y);
+            vec4 b0 = vec4(x.xy, y.xy);
+            vec4 b1 = vec4(x.zw, y.zw);
+            vec4 s0 = floor(b0) * 2.0 + 1.0;
+            vec4 s1 = floor(b1) * 2.0 + 1.0;
+            vec4 sh = -step(h, vec4(0.0));
+            vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+            vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+            vec3 p0 = vec3(a0.xy, h.x);
+            vec3 p1 = vec3(a0.zw, h.y);
+            vec3 p2 = vec3(a1.xy, h.z);
+            vec3 p3 = vec3(a1.zw, h.w);
+            vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+            p0 *= norm.x;
+            p1 *= norm.y;
+            p2 *= norm.z;
+            p3 *= norm.w;
+            vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
+            m = m * m;
+            return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+          }
+
+          void main() {
+            vNormal = normal;
+            vPosition = position;
+            float displacement = snoise(position * 2.0 + time * 0.5) * 0.2;
+            vec3 newPosition = position + normal * displacement;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 color;
+          uniform vec3 pointLightPos;
+          uniform float opacity;
+          varying vec3 vNormal;
+          varying vec3 vPosition;
+
+          void main() {
+            vec3 normal = normalize(vNormal);
+            vec3 lightDir = normalize(pointLightPos - vPosition);
+            float diffuse = max(dot(normal, lightDir), 0.0);
+            float fresnel = 1.0 - dot(normal, vec3(0.0, 0.0, 1.0));
+            fresnel = pow(fresnel, 2.0);
+            float contrast = pow(diffuse, 1.55) * 1.45 + pow(fresnel, 2.25) * 0.82;
+            contrast = smoothstep(0.06, 0.92, contrast);
+            vec3 finalColor = color * contrast;
+            gl_FragColor = vec4(finalColor, opacity);
+          }
+        `,
+        wireframe: true,
+        transparent: true
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+
+      const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+      pointLight.position.set(0, 0, 5);
+      scene.add(pointLight);
+
+      let lastNavScrollY = 0;
+      let isMenuOpen = false;
+
+      function setDockState(node, prefix, x, y, scale) {
+        node.style.setProperty(`--${prefix}-x`, `${x.toFixed(2)}px`);
+        node.style.setProperty(`--${prefix}-y`, `${y.toFixed(2)}px`);
+        node.style.setProperty(`--${prefix}-scale`, scale.toFixed(3));
+      }
+
+      function resetDock(node, prefix) {
+        setDockState(node, prefix, 0, 0, 1);
+      }
+
+      function updateMagneticDock(node, event, prefix, options = {}) {
+        if (
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+          !window.matchMedia("(hover: hover) and (pointer: fine)").matches
+        ) {
+          resetDock(node, prefix);
+          return;
+        }
+
+        const rect = node.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const deltaX = event.clientX - centerX;
+        const deltaY = event.clientY - centerY;
+        const distance = Math.hypot(deltaX, deltaY);
+        const bound = Math.max(rect.width, rect.height) * (options.bound ?? 0.72);
+        const proximity = Math.max(0, 1 - distance / bound);
+        const x = (deltaX / rect.width) * (options.x ?? 16) * proximity;
+        const y = (deltaY / rect.height) * (options.y ?? 14) * proximity;
+        const scale = 1 + (options.scale ?? 0.065) * proximity;
+
+        setDockState(node, prefix, x, y, scale);
+      }
+
+      function updateNavVisibility() {
+        const currentScrollY = Math.max(window.scrollY, 0);
+        const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+        const delta = currentScrollY - lastNavScrollY;
+
+        if (!isDesktop || isMenuOpen || currentScrollY < 80) {
+          siteNav.classList.remove("is-hidden");
+          lastNavScrollY = currentScrollY;
+          return;
+        }
+
+        if (Math.abs(delta) >= 8) {
+          siteNav.classList.toggle("is-hidden", delta > 0);
+          lastNavScrollY = currentScrollY;
+        }
+      }
+
+      function animateTabletNode(node, keyframes, options) {
+        return node.animate(keyframes, {
+          fill: "forwards",
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          ...options
+        }).finished.catch(() => {});
+      }
+
+      async function openTabletMenu() {
+        isMenuOpen = true;
+        menuButton.classList.add("is-open");
+        menuButton.setAttribute("aria-label", "Close Menu");
+        tabletMenu.classList.add("is-open");
+        tabletMenu.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+
+        await Promise.all([
+          ...tabletPanels.map((panel, index) =>
+            animateTabletNode(
+              panel,
+              [
+                { transform: "translate3d(110%, 0, 0) rotate(0deg)" },
+                { transform: "translate3d(0%, 0, 0) rotate(0deg)" }
+              ],
+              {
+                duration: 660,
+                delay: index * 90,
+                easing: "cubic-bezier(0.34, 1.56, 0.64, 1)"
+              }
+            )
+          ),
+          ...tabletLinks.map((link, index) =>
+            animateTabletNode(
+              link,
+              [
+                { opacity: 0, transform: "translateX(-18px)" },
+                { opacity: 1, transform: "translateX(0)" }
+              ],
+              { duration: 720, delay: 150 + index * 36 }
+            )
+          ),
+          animateTabletNode(
+            tabletCta,
+            [
+              { opacity: 0, transform: "translateY(8px)" },
+              { opacity: 1, transform: "translateY(0)" }
+            ],
+            { duration: 360, delay: 430 }
+          )
+        ]);
+      }
+
+      async function closeTabletMenu() {
+        isMenuOpen = false;
+        menuButton.classList.remove("is-open");
+        menuButton.setAttribute("aria-label", "Open Menu");
+
+        await Promise.all([
+          ...[...tabletPanels].reverse().map((panel, index) =>
+            animateTabletNode(
+              panel,
+              [
+                { transform: getComputedStyle(panel).transform },
+                {
+                  transform: `translate3d(${index % 2 === 0 ? -8 : 10}px, 112vh, 0) rotate(${index % 2 === 0 ? -16 : 18}deg)`
+                }
+              ],
+              {
+                duration: 520,
+                delay: index * 46,
+                easing: "cubic-bezier(0.7, 0, 0.84, 0)"
+              }
+            )
+          ),
+          ...tabletLinks.map((link) =>
+            animateTabletNode(
+              link,
+              [
+                { opacity: getComputedStyle(link).opacity, transform: getComputedStyle(link).transform },
+                { opacity: 0, transform: "translateX(-18px)" }
+              ],
+              { duration: 200, easing: "cubic-bezier(0.7, 0, 0.84, 0)" }
+            )
+          ),
+          animateTabletNode(
+            tabletCta,
+            [
+              { opacity: getComputedStyle(tabletCta).opacity, transform: getComputedStyle(tabletCta).transform },
+              { opacity: 0, transform: "translateY(8px)" }
+            ],
+            { duration: 160, easing: "cubic-bezier(0.7, 0, 0.84, 0)" }
+          )
+        ]);
+
+        tabletMenu.classList.remove("is-open");
+        tabletMenu.setAttribute("aria-hidden", "true");
+        tabletPanels.forEach((panel) => {
+          panel.style.transform = "translate3d(110%, 0, 0) rotate(0deg)";
+          panel.style.opacity = "1";
+        });
+        document.body.style.overflow = "";
+      }
+
+      function runCirclePageTransition(url, originX, originY, fallbackElement) {
+        const previousBodyOverflow = document.body.style.overflow;
+        const triggerRect = fallbackElement?.getBoundingClientRect();
+        const resolvedOriginX = originX ?? (triggerRect ? triggerRect.left + triggerRect.width / 2 : window.innerWidth / 2);
+        const resolvedOriginY = originY ?? (triggerRect ? triggerRect.top + triggerRect.height / 2 : window.innerHeight / 2);
+        const maxRadius = Math.ceil(Math.hypot(
+          Math.max(resolvedOriginX, window.innerWidth - resolvedOriginX),
+          Math.max(resolvedOriginY, window.innerHeight - resolvedOriginY)
+        ));
+        const finalSize = maxRadius * 2;
+        const transitionCircle = document.createElement("div");
+        const transitionMark = document.createElement("img");
+
+        try {
+          window.sessionStorage.setItem("xulei-startup-loader-seen", "true");
+        } catch {
+          // Session storage can be unavailable in strict privacy contexts.
+        }
+
+        document.body.style.overflow = "hidden";
+        transitionCircle.style.cssText = [
+          "position:fixed",
+          `left:${resolvedOriginX}px`,
+          `top:${resolvedOriginY}px`,
+          "width:1px",
+          "height:1px",
+          "z-index:90",
+          "border-radius:9999px",
+          "background:#000",
+          "pointer-events:none",
+          "overflow:hidden",
+          "opacity:1",
+          "will-change:left,top,width,height,opacity",
+          "transition:left 620ms cubic-bezier(.22,1,.36,1), top 620ms cubic-bezier(.22,1,.36,1), width 620ms cubic-bezier(.22,1,.36,1), height 620ms cubic-bezier(.22,1,.36,1), opacity 280ms cubic-bezier(.22,1,.36,1)"
+        ].join(";");
+        transitionMark.src = "assets/transition-assets/xulei-transition.png";
+        transitionMark.alt = "";
+        transitionMark.style.cssText = [
+          "position:fixed",
+          "left:50%",
+          "top:50%",
+          "z-index:91",
+          "width:min(69.6vw,320px)",
+          "height:auto",
+          "transform:translate(-50%,-50%) scale(1)",
+          "opacity:1",
+          "pointer-events:none",
+          "will-change:opacity,transform",
+          "transition:opacity 280ms cubic-bezier(.22,1,.36,1), transform 280ms cubic-bezier(.22,1,.36,1)"
+        ].join(";");
+
+        document.body.appendChild(transitionCircle);
+        document.body.appendChild(transitionMark);
+
+        window.requestAnimationFrame(() => {
+          transitionCircle.style.left = `${resolvedOriginX - maxRadius}px`;
+          transitionCircle.style.top = `${resolvedOriginY - maxRadius}px`;
+          transitionCircle.style.width = `${finalSize}px`;
+          transitionCircle.style.height = `${finalSize}px`;
+        });
+
+        window.setTimeout(() => {
+          window.location.href = url;
+        }, 620);
+      }
+
+      function normalizePathname(pathname) {
+        return pathname.replace(/\/$/, "") || "/";
+      }
+
+      function handleStaticPageTransitionClick(event) {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey ||
+          event.shiftKey
+        ) {
+          return;
+        }
+
+        const link = event.currentTarget;
+        const href = link.getAttribute("href");
+        if (!href || href.startsWith("#") || (link.target && link.target !== "_self")) return;
+
+        const destinationUrl = new URL(href, window.location.origin);
+        if (destinationUrl.origin !== window.location.origin) return;
+
+        const currentPath = normalizePathname(window.location.pathname);
+        const destinationPath = normalizePathname(destinationUrl.pathname);
+        const isSamePage = destinationPath === currentPath && destinationUrl.search === window.location.search;
+
+        if (isSamePage) {
+          if (!destinationUrl.hash || destinationUrl.hash === window.location.hash) {
+            event.preventDefault();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+          return;
+        }
+
+        event.preventDefault();
+        runCirclePageTransition(
+          `${destinationUrl.pathname}${destinationUrl.search}${destinationUrl.hash}`,
+          event.clientX,
+          event.clientY,
+          link
+        );
+      }
+
+      document.querySelectorAll("a[href]").forEach((link) => {
+        link.addEventListener("click", handleStaticPageTransitionClick);
+      });
+
+      function clamp01(value) {
+        return Math.min(1, Math.max(0, value));
+      }
+
+      function smoothstep(edge0, edge1, value) {
+        const x = clamp01((value - edge0) / (edge1 - edge0));
+        return x * x * (3 - 2 * x);
+      }
+
+      function lerp(start, end, amount) {
+        return start + (end - start) * amount;
+      }
+
+      function setRootVariable(name, value) {
+        if (rootVariableCache.get(name) === value) return;
+        rootVariableCache.set(name, value);
+        documentStyle.setProperty(name, value);
+      }
+
+      function updateCachedLayoutMetrics() {
+        viewportHeight = window.innerHeight || 1;
+      }
+
+      function animate(t) {
+        const currentScroll = window.scrollY || window.pageYOffset || 0;
+        const easedScrollProgress = currentScroll / viewportHeight;
+
+        const toLeftBottom = smoothstep(0, 1, easedScrollProgress);
+        const toProjectCenter = smoothstep(1, 2, easedScrollProgress);
+        const introFade = smoothstep(0.08, 0.46, easedScrollProgress);
+        const aboutFadeIn = smoothstep(aboutRevealStartProgress, aboutRevealStartProgress + 0.16, easedScrollProgress);
+        const aboutFadeOut = smoothstep(1.18, 1.5, easedScrollProgress);
+        const aboutIsVisible = aboutFadeIn > 0.02 && aboutFadeOut < 0.98;
+        const aboutIsExiting = aboutFadeOut > 0.02 && aboutFadeOut < 0.98;
+        const workProgress = smoothstep(1.38, 1.68, easedScrollProgress);
+        const leftBottomX = lerp(0, -1.55, toLeftBottom);
+        const leftBottomY = lerp(0, -0.92, toLeftBottom);
+        const largeScale = lerp(0.72, 1.34, toLeftBottom);
+
+        const sceneX = lerp(leftBottomX, 0, toProjectCenter);
+        const sceneY = lerp(leftBottomY, 0, toProjectCenter);
+        const sceneScale = lerp(largeScale, 4.1, toProjectCenter);
+        mesh.position.x = sceneX;
+        mesh.position.y = sceneY;
+        const scale = sceneScale;
+        mesh.scale.set(scale, scale, scale);
+        material.uniforms.opacity.value = lerp(1, 0.2, smoothstep(1.72, 2.08, easedScrollProgress));
+        setRootVariable(
+          "--intro-opacity",
+          `${1 - introFade}`
+        );
+        aboutPanel.classList.toggle("is-visible", aboutIsVisible);
+        aboutPanel.classList.toggle("is-exiting", aboutIsExiting);
+        const visibleWorkOpacity = workProgress;
+        const workEnterY = (1 - workProgress) * 72;
+        setRootVariable(
+          "--work-opacity",
+          `${visibleWorkOpacity}`
+        );
+        setRootVariable(
+          "--work-enter-y",
+          `${workEnterY}px`
+        );
+        workPanel.classList.toggle("is-visible", visibleWorkOpacity > 0.02);
+        setRootVariable(
+          "--radial-mask-opacity",
+          `${smoothstep(1.86, 2.16, easedScrollProgress)}`
+        );
+        material.uniforms.time.value = t * 0.0003;
+        mesh.rotation.y += 0.0005;
+        mesh.rotation.x += 0.0002;
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      }
+
+      function resize() {
+        updateCachedLayoutMetrics();
+        const width = mount.clientWidth;
+        const height = mount.clientHeight;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+      }
+
+      function handleMouseMove(event) {
+        const x = (event.clientX / window.innerWidth) * 2 - 1;
+        const y = -(event.clientY / window.innerHeight) * 2 + 1;
+        const vec = new THREE.Vector3(x, y, 0.5).unproject(camera);
+        const dir = vec.sub(camera.position).normalize();
+        const dist = -camera.position.z / dir.z;
+        const pos = camera.position.clone().add(dir.multiplyScalar(dist));
+
+        pointLight.position.copy(pos);
+        material.uniforms.pointLightPos.value.copy(pos);
+      }
+
+      siteLogo.addEventListener("pointermove", (event) => {
+        updateMagneticDock(siteLogo, event, "logo-dock", {
+          bound: 3.95,
+          x: 10,
+          y: 10,
+          scale: 0.28
+        });
+      });
+      siteLogo.addEventListener("pointerleave", () => resetDock(siteLogo, "logo-dock"));
+
+      siteNavLinks.forEach((link) => {
+        link.addEventListener("pointermove", (event) => {
+          updateMagneticDock(link, event, "nav-link-dock", {
+            bound: 3.95,
+            x: 10,
+            y: 10,
+            scale: 0.28
+          });
+        });
+        link.addEventListener("pointerleave", () => resetDock(link, "nav-link-dock"));
+      });
+
+      homeContentDocks.forEach((dock) => {
+        dock.addEventListener("pointermove", (event) => {
+          updateMagneticDock(dock, event, "content-dock", {
+            bound: 1.05,
+            x: 6,
+            y: 5,
+            scale: 0.018
+          });
+        });
+        dock.addEventListener("pointerleave", () => resetDock(dock, "content-dock"));
+      });
+
+      menuButton.addEventListener("click", () => {
+        if (isMenuOpen) {
+          closeTabletMenu();
+        } else {
+          openTabletMenu();
+        }
+      });
+
+      tabletMenu.addEventListener("click", closeTabletMenu);
+      tabletPanels.forEach((panel) => {
+        panel.addEventListener("click", (event) => event.stopPropagation());
+      });
+      [...tabletLinks, tabletCta].forEach((link) => {
+        link.addEventListener("click", closeTabletMenu);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && isMenuOpen) closeTabletMenu();
+      });
+
+      function openProjectFromNode(node, event) {
+        const url = node.dataset.projectUrl;
+        if (!url) return;
+
+        const projectSlug = new URL(url, window.location.origin).searchParams.get("project");
+        if (projectSlug) {
+          window.sessionStorage.setItem(
+            "xulei-project-return",
+            JSON.stringify({
+              slug: projectSlug,
+              returnTo: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+              returnScrollY: window.scrollY || window.pageYOffset || 0,
+              timestamp: Date.now()
+            })
+          );
+        }
+
+        runCirclePageTransition(
+          url,
+          event.clientX,
+          event.clientY,
+          node
+        );
+      }
+
+      function setProjectGridHoverColumn(index) {
+        projectRotatorList.classList.remove(
+          "is-hovering-col-1",
+          "is-hovering-col-2",
+          "is-hovering-col-3"
+        );
+
+        if (typeof index !== "number") return;
+        projectRotatorList.classList.add(`is-hovering-col-${(index % 3) + 1}`);
+      }
+
+      projectRotatorItems.forEach((item, index) => {
+        item.addEventListener("pointerenter", () => setProjectGridHoverColumn(index));
+        item.addEventListener("pointerleave", () => setProjectGridHoverColumn());
+      });
+      projectRotatorList.addEventListener("pointerleave", () => setProjectGridHoverColumn());
+
+      projectImageDocks.forEach((dock) => {
+        dock.addEventListener("pointermove", (event) => {
+          const isSelectedProjectDock = dock.classList.contains("project-rotator-image-dock");
+          updateMagneticDock(dock, event, "project-image-dock", isSelectedProjectDock
+            ? { bound: 2.2, x: 8, y: 7, scale: 0.03 }
+            : undefined
+          );
+        });
+        dock.addEventListener("pointerleave", () =>
+          resetDock(dock, "project-image-dock")
+        );
+        dock.addEventListener("click", (event) => openProjectFromNode(dock, event));
+      });
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("scroll", updateNavVisibility, { passive: true });
+      window.addEventListener("resize", updateNavVisibility);
+      updateCachedLayoutMetrics();
+      updateNavVisibility();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>
