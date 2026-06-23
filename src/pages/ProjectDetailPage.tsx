@@ -6,7 +6,7 @@ import GradualBlur from '@/components/GradualBlur';
 import { projects } from '@/data/projects';
 import { runCirclePageTransition } from '@/lib/pageTransition';
 import { useAdaptiveButtonTone } from '@/lib/useAdaptiveButtonTone';
-import { publicAsset } from '@/lib/utils';
+import { closeShellRoute, isInsideShellFrame, publicAsset } from '@/lib/utils';
 
 type ProjectDetailPageProps = {
   initialSlug?: string;
@@ -109,6 +109,11 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
         }
 
         writePendingScrollRestore(returnTo, returnScrollY);
+        if (isInsideShellFrame()) {
+          closeShellRoute(returnTo);
+          return;
+        }
+
         window.location.assign(returnTo);
         return;
       }

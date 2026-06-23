@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { MouseEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { runCirclePageTransition } from '@/lib/pageTransition';
+import { closeShellRoute, isInsideShellFrame, publicRoute } from '@/lib/utils';
 
 type TransitionClickOptions = {
   beforeNavigate?: () => void;
@@ -51,7 +52,12 @@ export function usePageTransitionNavigation() {
 
     const go = () => {
       if (usesDocumentNavigation) {
-        window.location.assign(destination);
+        if (isInsideShellFrame()) {
+          closeShellRoute(publicRoute(destination));
+          return;
+        }
+
+        window.location.assign(publicRoute(destination));
         return;
       }
 

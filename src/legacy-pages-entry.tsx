@@ -8,8 +8,33 @@ import StartupLoader from './components/StartupLoader'
 import PortfolioPage from './pages/PortfolioPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import ContactPage from './pages/ContactPage'
-import { publicAsset } from './lib/utils'
+import { isInsideShellFrame, publicAsset, syncShellRoute } from './lib/utils'
 import './index.css'
+
+
+function installShellRouteSync() {
+  if (!isInsideShellFrame()) return
+
+  const getPath = () => `${window.location.pathname}${window.location.search}${window.location.hash}`
+  const sync = () => syncShellRoute(getPath())
+  const originalPushState = window.history.pushState.bind(window.history)
+  const originalReplaceState = window.history.replaceState.bind(window.history)
+
+  window.history.pushState = (...args) => {
+    originalPushState(...args)
+    sync()
+  }
+
+  window.history.replaceState = (...args) => {
+    originalReplaceState(...args)
+    sync()
+  }
+
+  window.addEventListener('popstate', sync)
+  sync()
+}
+
+installShellRouteSync()
 
 function HomeRedirect() {
   useEffect(() => {

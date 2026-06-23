@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -13,4 +12,41 @@ export function publicAsset(path?: string) {
   }
 
   return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
+}
+
+export function publicRoute(path = '/') {
+  if (/^(https?:)?\/\//.test(path)) {
+    return path
+  }
+
+  return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
+}
+
+export function isInsideShellFrame() {
+  if (typeof window === 'undefined') return false
+
+  try {
+    return window.parent !== window
+  } catch {
+    return false
+  }
+}
+
+export function postShellRouteMessage(type: 'xulei-shell-route-sync' | 'xulei-shell-close', path = '/') {
+  if (typeof window === 'undefined' || !isInsideShellFrame()) return false
+
+  try {
+    window.parent.postMessage({ type, path }, window.location.origin)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function syncShellRoute(path = `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+  return postShellRouteMessage('xulei-shell-route-sync', path)
+}
+
+export function closeShellRoute(path = '/') {
+  return postShellRouteMessage('xulei-shell-close', path)
 }

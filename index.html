@@ -1323,6 +1323,15 @@
       let viewportHeight = window.innerHeight || 1;
       const rootVariableCache = new Map();
       const aboutRevealStartProgress = 0.82;
+      const siteBasePath = new URL("%BASE_URL%", window.location.origin).pathname;
+
+      function withSiteBase(path) {
+        if (!path || /^(https?:)?\/\//.test(path) || path.startsWith("data:") || path.startsWith("blob:")) {
+          return path;
+        }
+
+        return `${siteBasePath}${path.replace(/^\/+/, "")}`;
+      }
 
       function escapeAttribute(value) {
         return value
@@ -1335,12 +1344,12 @@
       function renderSelectedProjects() {
         projectRotatorList.innerHTML = selectedProjects
           .map((project, index) => {
-            const image = project.cover || project.images.desktop;
-            const url = `/portfolio/?project=${encodeURIComponent(project.slug)}`;
+            const image = withSiteBase(project.cover || project.images.desktop);
+            const url = withSiteBase(`portfolio/${encodeURIComponent(project.slug)}/`);
 
             return `
               <article class="project-rotator-item" data-project-index="${index}">
-                <button class="portfolio-project-image-dock project-rotator-image-dock" type="button" data-project-url="${url}" aria-label="View ${escapeAttribute(project.title)} project">
+                <button class="portfolio-project-image-dock project-rotator-image-dock" type="button" data-project-url="${url}" data-project-slug="${escapeAttribute(project.slug)}" aria-label="View ${escapeAttribute(project.title)} project">
                   <img
                     class="portfolio-project-image project-rotator-image"
                     src="${image}"
@@ -1378,7 +1387,7 @@
       selectedProjects.forEach((project) => {
         const image = new Image();
         image.decoding = "async";
-        image.src = project.cover || project.images.desktop;
+        image.src = withSiteBase(project.cover || project.images.desktop);
       });
 
       const projectImageDocks = [...document.querySelectorAll(".project-rotator-image-dock")];
@@ -1668,7 +1677,7 @@
         document.body.style.overflow = "";
       }
 
-      function runCirclePageTransition(url, originX, originY, fallbackElement) {
+      function runCirclePageTransition(url, originX, originY, fallbackElement, onCovered) {
         const previousBodyOverflow = document.body.style.overflow;
         const triggerRect = fallbackElement?.getBoundingClientRect();
         const resolvedOriginX = originX ?? (triggerRect ? triggerRect.left + triggerRect.width / 2 : window.innerWidth / 2);
@@ -1703,7 +1712,7 @@
           "will-change:left,top,width,height,opacity",
           "transition:left 620ms cubic-bezier(.22,1,.36,1), top 620ms cubic-bezier(.22,1,.36,1), width 620ms cubic-bezier(.22,1,.36,1), height 620ms cubic-bezier(.22,1,.36,1), opacity 280ms cubic-bezier(.22,1,.36,1)"
         ].join(";");
-        transitionMark.src = "assets/transition-assets/xulei-transition.png";
+        transitionMark.src = withSiteBase("assets/transition-assets/xulei-transition.png");
         transitionMark.alt = "";
         transitionMark.style.cssText = [
           "position:fixed",
@@ -1730,6 +1739,25 @@
         });
 
         window.setTimeout(() => {
+          if (typeof onCovered === "function") {
+            onCovered();
+
+            window.requestAnimationFrame(() => {
+              window.requestAnimationFrame(() => {
+                transitionCircle.style.opacity = "0";
+                transitionMark.style.opacity = "0";
+                transitionMark.style.transform = "translate(-50%,-50%) scale(1.02)";
+
+                window.setTimeout(() => {
+                  transitionCircle.remove();
+                  transitionMark.remove();
+                  document.body.style.overflow = previousBodyOverflow;
+                }, 340);
+              });
+            });
+            return;
+          }
+
           window.location.href = url;
         }, 620);
       }
@@ -1737,6 +1765,133 @@
       function normalizePathname(pathname) {
         return pathname.replace(/\/$/, "") || "/";
       }
+
+      function toSiteRelativePath(pathname) {
+        const normalizedBase = siteBasePath.endsWith("/") ? siteBasePath : `${siteBasePath}/`;
+        if (!pathname.startsWith(normalizedBase)) return "";
+        return pathname.slice(normalizedBase.length).replace(/^\/+/, "");
+      }
+
+      function isShellRoute(pathname) {
+        const relativePath = toSiteRelativePath(pathname).replace(/\/$/, "");
+        return relativePath === "portfolio" ||
+          relativePath.startsWith("portfolio/") ||
+          relativePath === "contact" ||
+          relativePath.startsWith("contact/");
+      }
+
+      function getShellFrame() {
+        let frame = document.querySelector("#xulei-route-frame");
+        if (frame) return frame;
+
+        frame = document.createElement("iframe");
+        frame.id = "xulei-route-frame";
+        frame.title = "Crazy Master Xu page";
+        frame.setAttribute("aria-hidden", "true");
+        frame.style.cssText = [
+          "position:fixed",
+          "inset:0",
+          "width:100vw",
+          "height:100dvh",
+          "border:0",
+          "z-index:70",
+          "background:#000",
+          "display:none"
+        ].join(";");
+        document.body.appendChild(frame);
+        return frame;
+      }
+
+      function openShellRoute(url, historyMode = "push") {
+        const destinationUrl = new URL(url, window.location.origin);
+        const frame = getShellFrame();
+        const nextPath = `${destinationUrl.pathname}${destinationUrl.search}${destinationUrl.hash}`;
+
+        frame.setAttribute("aria-hidden", "false");
+        frame.style.display = "block";
+        document.documentElement.classList.add("is-shell-route-active");
+        document.body.style.overflow = "hidden";
+
+        if (frame.getAttribute("src") !== nextPath) {
+          frame.setAttribute("src", nextPath);
+        }
+
+        if (historyMode === "replace") {
+          window.history.replaceState({ xuleiShellRoute: true }, "", nextPath);
+        } else if (historyMode === "push") {
+          window.history.pushState({ xuleiShellRoute: true }, "", nextPath);
+        }
+      }
+
+      function isHomeRoute(path = siteBasePath) {
+        const destinationUrl = new URL(path, window.location.origin);
+        return normalizePathname(destinationUrl.pathname) === normalizePathname(siteBasePath) &&
+          !destinationUrl.search &&
+          !destinationUrl.hash;
+      }
+
+      function closeShellRoute(historyMode = "push", resetScroll = false) {
+        const frame = document.querySelector("#xulei-route-frame");
+        if (frame) {
+          frame.style.display = "none";
+          frame.setAttribute("aria-hidden", "true");
+        }
+        document.documentElement.classList.remove("is-shell-route-active");
+        document.body.style.overflow = "";
+
+        if (historyMode === "replace") {
+          window.history.replaceState(null, "", siteBasePath);
+        } else if (historyMode === "push") {
+          window.history.pushState(null, "", siteBasePath);
+        }
+
+        if (resetScroll) {
+          window.sessionStorage.removeItem("xulei-pending-scroll-restore");
+          window.requestAnimationFrame(() => {
+            window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+          });
+        }
+      }
+
+      function handleShellMessage(event) {
+        if (event.origin !== window.location.origin || !event.data || typeof event.data !== "object") return;
+        const { type, path } = event.data;
+
+        if (type === "xulei-shell-close") {
+          closeShellRoute("push", typeof path === "string" && isHomeRoute(path));
+          return;
+        }
+
+        if (type === "xulei-shell-route-sync" && typeof path === "string") {
+          const destinationUrl = new URL(path, window.location.origin);
+          if (!isShellRoute(destinationUrl.pathname)) return;
+
+          const nextPath = `${destinationUrl.pathname}${destinationUrl.search}${destinationUrl.hash}`;
+          const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          if (nextPath !== currentPath) {
+            window.history.pushState({ xuleiShellRoute: true }, "", nextPath);
+          }
+        }
+      }
+
+      window.addEventListener("message", handleShellMessage);
+      window.addEventListener("popstate", () => {
+        if (isShellRoute(window.location.pathname)) {
+          openShellRoute(`${window.location.pathname}${window.location.search}${window.location.hash}`, "none");
+          return;
+        }
+
+        closeShellRoute("none");
+      });
+
+      window.requestIdleCallback?.(() => {
+        ["portfolio/", "contact/"].forEach((path) => {
+          const link = document.createElement("link");
+          link.rel = "prefetch";
+          link.href = withSiteBase(path);
+          document.head.appendChild(link);
+        });
+      });
 
       function handleStaticPageTransitionClick(event) {
         if (
@@ -1770,11 +1925,13 @@
         }
 
         event.preventDefault();
+        const nextPath = `${destinationUrl.pathname}${destinationUrl.search}${destinationUrl.hash}`;
         runCirclePageTransition(
-          `${destinationUrl.pathname}${destinationUrl.search}${destinationUrl.hash}`,
+          nextPath,
           event.clientX,
           event.clientY,
-          link
+          link,
+          isShellRoute(destinationUrl.pathname) ? () => openShellRoute(nextPath, "push") : undefined
         );
       }
 
@@ -1936,7 +2093,7 @@
         const url = node.dataset.projectUrl;
         if (!url) return;
 
-        const projectSlug = new URL(url, window.location.origin).searchParams.get("project");
+        const projectSlug = node.dataset.projectSlug;
         if (projectSlug) {
           window.sessionStorage.setItem(
             "xulei-project-return",
@@ -1953,7 +2110,8 @@
           url,
           event.clientX,
           event.clientY,
-          node
+          node,
+          isShellRoute(new URL(url, window.location.origin).pathname) ? () => openShellRoute(url, "push") : undefined
         );
       }
 
