@@ -5,21 +5,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function publicAsset(path?: string) {
-  if (!path) return undefined
+const basePath = import.meta.env.BASE_URL.endsWith('/')
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`
+
+function withPublicBase(path: string) {
   if (/^(https?:)?\/\//.test(path) || path.startsWith('data:') || path.startsWith('blob:')) {
     return path
   }
 
-  return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
+  if (path.startsWith(basePath)) return path
+  if (path === '/') return basePath
+
+  return `${basePath}${path.replace(/^\/+/, '')}`
+}
+
+export function publicAsset(path?: string) {
+  if (!path) return undefined
+  return withPublicBase(path)
 }
 
 export function publicRoute(path = '/') {
-  if (/^(https?:)?\/\//.test(path)) {
-    return path
-  }
-
-  return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
+  return withPublicBase(path)
 }
 
 export function isInsideShellFrame() {

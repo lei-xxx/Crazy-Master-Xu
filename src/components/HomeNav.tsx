@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePageTransitionNavigation } from '@/lib/usePageTransitionNavigation'
+import { publicRoute } from '@/lib/utils'
 import './HomeNav.css'
 
 interface HomeNavProps {
@@ -128,7 +129,7 @@ export default function HomeNav({ logo, logoAlt = 'Xu Lei' }: HomeNavProps) {
         <a
           ref={logoRef}
           className="home-site-logo"
-          href="/"
+          href={publicRoute('/')}
           aria-label="Xu Lei Home"
           onClick={(event) => navigateWithTransition(event, '/')}
         >
@@ -142,7 +143,7 @@ export default function HomeNav({ logo, logoAlt = 'Xu Lei' }: HomeNavProps) {
                 if (node) linkRefs.current[index] = node
               }}
               className="home-site-nav-link"
-              href={link.href}
+              href={publicRoute(link.href)}
               onClick={(event) => navigateWithTransition(event, link.href)}
             >
               <span className="home-site-nav-track">

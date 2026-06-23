@@ -12,6 +12,10 @@ const projectSlugs = [...projectsSource.matchAll(/slug:\s*'([^']+)'/g)].map((mat
 
 const routes = [
   '404.html',
+  'privacy/index.html',
+  'terms/index.html',
+  'pricing/index.html',
+  'process/index.html',
   ...projectSlugs.map((slug) => `portfolio/${slug}/index.html`),
 ]
 
