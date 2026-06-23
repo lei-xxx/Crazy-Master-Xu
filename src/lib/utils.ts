@@ -29,6 +29,24 @@ export function publicRoute(path = '/') {
   return withPublicBase(path)
 }
 
+export function toRouterPath(path?: string) {
+  if (!path || /^(https?:)?\/\//.test(path) || path.startsWith('data:') || path.startsWith('blob:')) {
+    return path
+  }
+
+  const normalizedBase = basePath.replace(/\/$/, '')
+  if (!normalizedBase) return path
+
+  if (path === normalizedBase) return '/'
+
+  if (path.startsWith(`${normalizedBase}/`) || path.startsWith(`${normalizedBase}?`) || path.startsWith(`${normalizedBase}#`)) {
+    const normalizedPath = path.slice(normalizedBase.length)
+    return normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`
+  }
+
+  return path
+}
+
 export function isInsideShellFrame() {
   if (typeof window === 'undefined') return false
 

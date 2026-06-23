@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { projects } from '@/data/projects';
 import { markHomeSceneReady, preloadHomeSceneModule, resetHomeSceneReady } from '@/lib/homeScenePreload';
 import { runCirclePageTransition } from '@/lib/pageTransition';
-import { publicAsset } from '@/lib/utils';
+import { publicAsset, toRouterPath } from '@/lib/utils';
 import { usePageTransitionNavigation } from '@/lib/usePageTransitionNavigation';
 import './HomePage.css';
 
@@ -97,9 +97,10 @@ export default function HomePage() {
       const restoreState = JSON.parse(rawValue) as { returnTo?: string; scrollY?: number; scrollTarget?: string; timestamp?: number };
       const currentPath = `${location.pathname}${location.search}${location.hash}`;
       const currentPathWithoutHash = `${location.pathname}${location.search}`;
-      const restorePathWithoutHash = restoreState.returnTo?.split('#')[0];
+      const normalizedReturnTo = toRouterPath(restoreState.returnTo);
+      const restorePathWithoutHash = normalizedReturnTo?.split('#')[0];
       const isExpired = Boolean(restoreState.timestamp && Date.now() - restoreState.timestamp > 30 * 60 * 1000);
-      const isCurrentRoute = restoreState.returnTo === currentPath || restorePathWithoutHash === currentPathWithoutHash;
+      const isCurrentRoute = normalizedReturnTo === currentPath || restorePathWithoutHash === currentPathWithoutHash;
 
       if (isExpired || !isCurrentRoute) return;
 
@@ -414,7 +415,7 @@ export default function HomePage() {
 
   const openProject = (project: (typeof projects)[number], event: React.MouseEvent<HTMLButtonElement>) => {
     const destination = `/portfolio/${encodeURIComponent(project.slug)}`;
-    const returnTo = `${window.location.pathname}${window.location.search}#portfolio`;
+    const returnTo = `${location.pathname}${location.search}#portfolio`;
     const returnScrollY = workPanelRef.current?.offsetTop ?? window.scrollY ?? window.pageYOffset ?? 0;
     const returnScrollTarget = '#portfolio';
 

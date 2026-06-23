@@ -6,7 +6,7 @@ import GradualBlur from '@/components/GradualBlur';
 import { projects } from '@/data/projects';
 import { runCirclePageTransition } from '@/lib/pageTransition';
 import { useAdaptiveButtonTone } from '@/lib/useAdaptiveButtonTone';
-import { closeShellRoute, isInsideShellFrame, publicAsset } from '@/lib/utils';
+import { closeShellRoute, isInsideShellFrame, publicAsset, toRouterPath } from '@/lib/utils';
 
 type ProjectDetailPageProps = {
   initialSlug?: string;
@@ -98,7 +98,7 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
   const goBack = (triggerElement?: HTMLElement, clickPoint?: { x: number; y: number }) => {
     const isShellFrame = isInsideShellFrame();
     const historyIndex = window.history.state?.idx;
-    const returnTo = navigationState?.returnTo ?? storedReturnState?.returnTo;
+    const returnTo = toRouterPath(navigationState?.returnTo ?? storedReturnState?.returnTo);
     const returnScrollY = navigationState?.returnScrollY ?? storedReturnState?.returnScrollY;
     const returnScrollTarget = navigationState?.returnScrollTarget ?? storedReturnState?.returnScrollTarget;
     const usesDocumentNavigation = Boolean(returnTo && !returnTo.startsWith('/'));
