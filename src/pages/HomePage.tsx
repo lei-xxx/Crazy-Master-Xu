@@ -94,15 +94,25 @@ export default function HomePage() {
     if (!rawValue) return;
 
     try {
-      const restoreState = JSON.parse(rawValue) as { returnTo?: string; scrollY?: number; timestamp?: number };
+      const restoreState = JSON.parse(rawValue) as { returnTo?: string; scrollY?: number; scrollTarget?: string; timestamp?: number };
       const currentPath = `${location.pathname}${location.search}${location.hash}`;
+      const currentPathWithoutHash = `${location.pathname}${location.search}`;
+      const restorePathWithoutHash = restoreState.returnTo?.split('#')[0];
       const isExpired = Boolean(restoreState.timestamp && Date.now() - restoreState.timestamp > 30 * 60 * 1000);
+      const isCurrentRoute = restoreState.returnTo === currentPath || restorePathWithoutHash === currentPathWithoutHash;
 
-      if (isExpired || restoreState.returnTo !== currentPath || typeof restoreState.scrollY !== 'number') return;
+      if (isExpired || !isCurrentRoute) return;
 
       window.sessionStorage.removeItem(restoreKey);
       window.requestAnimationFrame(() => {
-        window.scrollTo({ top: restoreState.scrollY, left: 0, behavior: 'auto' });
+        if (restoreState.scrollTarget) {
+          document.querySelector(restoreState.scrollTarget)?.scrollIntoView({ block: 'start', behavior: 'auto' });
+          return;
+        }
+
+        if (typeof restoreState.scrollY === 'number') {
+          window.scrollTo({ top: restoreState.scrollY, left: 0, behavior: 'auto' });
+        }
       });
     } catch {
       window.sessionStorage.removeItem(restoreKey);
@@ -404,8 +414,9 @@ export default function HomePage() {
 
   const openProject = (project: (typeof projects)[number], event: React.MouseEvent<HTMLButtonElement>) => {
     const destination = `/portfolio/${encodeURIComponent(project.slug)}`;
-    const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    const returnScrollY = window.scrollY || window.pageYOffset || 0;
+    const returnTo = `${window.location.pathname}${window.location.search}#portfolio`;
+    const returnScrollY = workPanelRef.current?.offsetTop ?? window.scrollY ?? window.pageYOffset ?? 0;
+    const returnScrollTarget = '#portfolio';
 
     window.sessionStorage.setItem(
       'xulei-project-return',
@@ -413,6 +424,7 @@ export default function HomePage() {
         slug: project.slug,
         returnTo,
         returnScrollY,
+        returnScrollTarget,
         timestamp: Date.now(),
       }),
     );
@@ -421,7 +433,7 @@ export default function HomePage() {
       originX: event.clientX,
       originY: event.clientY,
       fallbackElement: event.currentTarget,
-      onCovered: () => navigate(destination, { state: { fromPortfolioTransition: true, returnTo, returnScrollY } }),
+      onCovered: () => navigate(destination, { state: { fromPortfolioTransition: true, returnTo, returnScrollY, returnScrollTarget } }),
     });
   };
 

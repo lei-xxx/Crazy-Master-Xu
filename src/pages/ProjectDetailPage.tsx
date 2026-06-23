@@ -16,6 +16,7 @@ type ProjectReturnState = {
   fromPortfolioTransition?: boolean;
   returnTo?: string;
   returnScrollY?: number;
+  returnScrollTarget?: string;
 };
 
 const PROJECT_RETURN_KEY = 'xulei-project-return';
@@ -38,12 +39,12 @@ const readStoredReturnState = (slug?: string): ProjectReturnState | null => {
   }
 };
 
-const writePendingScrollRestore = (returnTo: string, scrollY?: number) => {
-  if (typeof window === 'undefined' || typeof scrollY !== 'number') return;
+const writePendingScrollRestore = (returnTo: string, scrollY?: number, scrollTarget?: string) => {
+  if (typeof window === 'undefined' || (typeof scrollY !== 'number' && !scrollTarget)) return;
 
   window.sessionStorage.setItem(
     PENDING_SCROLL_RESTORE_KEY,
-    JSON.stringify({ returnTo, scrollY, timestamp: Date.now() }),
+    JSON.stringify({ returnTo, scrollY, scrollTarget, timestamp: Date.now() }),
   );
 };
 
@@ -99,6 +100,7 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
     const historyIndex = window.history.state?.idx;
     const returnTo = navigationState?.returnTo ?? storedReturnState?.returnTo;
     const returnScrollY = navigationState?.returnScrollY ?? storedReturnState?.returnScrollY;
+    const returnScrollTarget = navigationState?.returnScrollTarget ?? storedReturnState?.returnScrollTarget;
     const usesDocumentNavigation = Boolean(returnTo && !returnTo.startsWith('/'));
     const navigateBack = () => {
       if (returnTo) {
@@ -110,12 +112,12 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
             return;
           }
 
-          writePendingScrollRestore(returnTo, returnScrollY);
+          writePendingScrollRestore(returnTo, returnScrollY, returnScrollTarget);
           navigate(returnTo);
           return;
         }
 
-        writePendingScrollRestore(returnTo, returnScrollY);
+        writePendingScrollRestore(returnTo, returnScrollY, returnScrollTarget);
         if (isShellFrame && closeShellRoute(returnTo, { scrollY: returnScrollY })) {
           return;
         }
