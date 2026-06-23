@@ -95,6 +95,7 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
 
   const projectTags = Array.from(new Set(project.tags ?? [project.category]));
   const goBack = (triggerElement?: HTMLElement, clickPoint?: { x: number; y: number }) => {
+    const isShellFrame = isInsideShellFrame();
     const historyIndex = window.history.state?.idx;
     const returnTo = navigationState?.returnTo ?? storedReturnState?.returnTo;
     const returnScrollY = navigationState?.returnScrollY ?? storedReturnState?.returnScrollY;
@@ -109,8 +110,7 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
         }
 
         writePendingScrollRestore(returnTo, returnScrollY);
-        if (isInsideShellFrame()) {
-          closeShellRoute(returnTo);
+        if (isShellFrame && closeShellRoute(returnTo, { scrollY: returnScrollY })) {
           return;
         }
 
@@ -139,7 +139,7 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
       originY: clickPoint?.y,
       fallbackElement: triggerElement,
       onCovered: navigateBack,
-      holdAfterCovered: usesDocumentNavigation,
+      holdAfterCovered: usesDocumentNavigation && !isShellFrame,
       onFinish: () => {
         isBackTransitioningRef.current = false;
       },

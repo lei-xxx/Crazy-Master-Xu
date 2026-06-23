@@ -50,10 +50,11 @@ export function usePageTransitionNavigation() {
 
     const usesDocumentNavigation = normalizePath(destinationUrl.pathname) === '/';
 
+    const isShellFrame = isInsideShellFrame();
+
     const go = () => {
       if (usesDocumentNavigation) {
-        if (isInsideShellFrame()) {
-          closeShellRoute(publicRoute(destination));
+        if (isShellFrame && closeShellRoute(publicRoute(destination), { resetScroll: true })) {
           return;
         }
 
@@ -74,7 +75,7 @@ export function usePageTransitionNavigation() {
       originY: event.clientY,
       fallbackElement: event.currentTarget,
       onCovered: go,
-      holdAfterCovered: usesDocumentNavigation,
+      holdAfterCovered: usesDocumentNavigation && !isShellFrame,
     });
 
     return true;

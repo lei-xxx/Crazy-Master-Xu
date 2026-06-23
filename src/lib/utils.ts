@@ -39,11 +39,22 @@ export function isInsideShellFrame() {
   }
 }
 
-export function postShellRouteMessage(type: 'xulei-shell-route-sync' | 'xulei-shell-close', path = '/') {
+type ShellRouteMessageType = 'xulei-shell-route-sync' | 'xulei-shell-close'
+
+type ShellRouteMessagePayload = {
+  resetScroll?: boolean
+  scrollY?: number
+}
+
+export function postShellRouteMessage(
+  type: ShellRouteMessageType,
+  path = '/',
+  payload: ShellRouteMessagePayload = {},
+) {
   if (typeof window === 'undefined' || !isInsideShellFrame()) return false
 
   try {
-    window.parent.postMessage({ type, path }, window.location.origin)
+    window.parent.postMessage({ type, path, ...payload }, window.location.origin)
     return true
   } catch {
     return false
@@ -54,6 +65,6 @@ export function syncShellRoute(path = `${window.location.pathname}${window.locat
   return postShellRouteMessage('xulei-shell-route-sync', path)
 }
 
-export function closeShellRoute(path = '/') {
-  return postShellRouteMessage('xulei-shell-close', path)
+export function closeShellRoute(path = '/', payload: ShellRouteMessagePayload = {}) {
+  return postShellRouteMessage('xulei-shell-close', path, payload)
 }

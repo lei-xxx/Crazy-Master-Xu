@@ -17,6 +17,8 @@ const waitForNextPaint = (callback: () => void) => {
   });
 };
 
+const HOLD_FALLBACK_MS = 1600;
+
 export const runCirclePageTransition = ({
   originX,
   originY,
@@ -80,17 +82,10 @@ export const runCirclePageTransition = ({
   document.body.appendChild(transitionCircle);
   document.body.appendChild(transitionMark);
 
-  window.requestAnimationFrame(() => {
-    transitionCircle.style.left = `${resolvedOriginX - maxRadius}px`;
-    transitionCircle.style.top = `${resolvedOriginY - maxRadius}px`;
-    transitionCircle.style.width = `${finalSize}px`;
-    transitionCircle.style.height = `${finalSize}px`;
-  });
-
-  window.setTimeout(() => {
-    onCovered();
-
-    if (holdAfterCovered) return;
+  let isFinished = false;
+  const finish = () => {
+    if (isFinished) return;
+    isFinished = true;
 
     waitForNextPaint(() => {
       transitionCircle.style.opacity = '0';
@@ -104,5 +99,28 @@ export const runCirclePageTransition = ({
         onFinish?.();
       }, 340);
     });
+  };
+
+  window.requestAnimationFrame(() => {
+    transitionCircle.style.left = `${resolvedOriginX - maxRadius}px`;
+    transitionCircle.style.top = `${resolvedOriginY - maxRadius}px`;
+    transitionCircle.style.width = `${finalSize}px`;
+    transitionCircle.style.height = `${finalSize}px`;
+  });
+
+  window.setTimeout(() => {
+    try {
+      onCovered();
+    } catch (error) {
+      finish();
+      throw error;
+    }
+
+    if (holdAfterCovered) {
+      window.setTimeout(finish, HOLD_FALLBACK_MS);
+      return;
+    }
+
+    finish();
   }, 620);
 };

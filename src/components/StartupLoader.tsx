@@ -5,8 +5,25 @@ const LOADER_SESSION_KEY = 'xulei-startup-loader-seen';
 const MIN_VISIBLE_MS = 2000;
 const MAX_WAIT_MS = 1800;
 const LEAVE_ANIMATION_MS = 650;
+const FAILSAFE_HIDE_MS = 4200;
 
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
+const hasSeenLoader = () => {
+  try {
+    return sessionStorage.getItem(LOADER_SESSION_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const markLoaderSeen = () => {
+  try {
+    sessionStorage.setItem(LOADER_SESSION_KEY, 'true');
+  } catch {
+    // Storage can be unavailable in strict privacy contexts.
+  }
+};
 
 const waitForNextPaint = () =>
   new Promise<void>((resolve) => {
@@ -56,38 +73,51 @@ export default function StartupLoader() {
   const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem(LOADER_SESSION_KEY) === 'true') return;
+    if (hasSeenLoader()) return;
 
     let isMounted = true;
+    let failsafeTimer = 0;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     setShouldRender(true);
 
-    const runLoader = async () => {
-      const startedAt = performance.now();
-      await waitForCriticalResources();
-
-      const elapsed = performance.now() - startedAt;
-      if (elapsed < MIN_VISIBLE_MS) {
-        await wait(MIN_VISIBLE_MS - elapsed);
-      }
-
+    const hideLoader = async () => {
       if (!isMounted) return;
       await waitForNextPaint();
       if (!isMounted) return;
-      sessionStorage.setItem(LOADER_SESSION_KEY, 'true');
+      markLoaderSeen();
       setIsLeaving(true);
       await wait(LEAVE_ANIMATION_MS);
 
       if (!isMounted) return;
+      window.clearTimeout(failsafeTimer);
       document.body.style.overflow = previousOverflow;
       setShouldRender(false);
     };
+
+    const runLoader = async () => {
+      try {
+        const startedAt = performance.now();
+        await waitForCriticalResources();
+
+        const elapsed = performance.now() - startedAt;
+        if (elapsed < MIN_VISIBLE_MS) {
+          await wait(MIN_VISIBLE_MS - elapsed);
+        }
+      } finally {
+        await hideLoader();
+      }
+    };
+
+    failsafeTimer = window.setTimeout(() => {
+      void hideLoader();
+    }, FAILSAFE_HIDE_MS);
 
     void runLoader();
 
     return () => {
       isMounted = false;
+      window.clearTimeout(failsafeTimer);
       document.body.style.overflow = previousOverflow;
     };
   }, []);

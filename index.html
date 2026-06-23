@@ -1345,7 +1345,7 @@
         projectRotatorList.innerHTML = selectedProjects
           .map((project, index) => {
             const image = withSiteBase(project.cover || project.images.desktop);
-            const url = withSiteBase(`portfolio/${encodeURIComponent(project.slug)}/`);
+            const url = withSiteBase(`portfolio/?project=${encodeURIComponent(project.slug)}`);
 
             return `
               <article class="project-rotator-item" data-project-index="${index}">
@@ -1802,17 +1802,34 @@
         return frame;
       }
 
-      function openShellRoute(url, historyMode = "push") {
+      function getFrameCurrentPath(frame) {
+        if (frame.dataset.currentPath) return frame.dataset.currentPath;
+
+        try {
+          if (frame.contentWindow?.location?.origin === window.location.origin) {
+            return `${frame.contentWindow.location.pathname}${frame.contentWindow.location.search}${frame.contentWindow.location.hash}`;
+          }
+        } catch {
+          // The iframe should be same-origin, but keep this resilient.
+        }
+
+        return frame.getAttribute("src") || "";
+      }
+
+      function openShellRoute(url, historyMode = "push", options = {}) {
         const destinationUrl = new URL(url, window.location.origin);
         const frame = getShellFrame();
         const nextPath = `${destinationUrl.pathname}${destinationUrl.search}${destinationUrl.hash}`;
+        const currentFramePath = getFrameCurrentPath(frame);
+        const forceReload = options.forceReload === true;
 
         frame.setAttribute("aria-hidden", "false");
         frame.style.display = "block";
         document.documentElement.classList.add("is-shell-route-active");
         document.body.style.overflow = "hidden";
 
-        if (frame.getAttribute("src") !== nextPath) {
+        if (forceReload || normalizePathname(currentFramePath) !== normalizePathname(nextPath)) {
+          frame.dataset.currentPath = nextPath;
           frame.setAttribute("src", nextPath);
         }
 
@@ -1830,7 +1847,7 @@
           !destinationUrl.hash;
       }
 
-      function closeShellRoute(historyMode = "push", resetScroll = false) {
+      function closeShellRoute(historyMode = "push", resetScroll = false, restoreScrollY) {
         const frame = document.querySelector("#xulei-route-frame");
         if (frame) {
           frame.style.display = "none";
@@ -1850,15 +1867,23 @@
           window.requestAnimationFrame(() => {
             window.scrollTo({ top: 0, left: 0, behavior: "auto" });
           });
+          return;
+        }
+
+        if (typeof restoreScrollY === "number" && Number.isFinite(restoreScrollY)) {
+          window.sessionStorage.removeItem("xulei-pending-scroll-restore");
+          window.requestAnimationFrame(() => {
+            window.scrollTo({ top: Math.max(0, restoreScrollY), left: 0, behavior: "auto" });
+          });
         }
       }
 
       function handleShellMessage(event) {
         if (event.origin !== window.location.origin || !event.data || typeof event.data !== "object") return;
-        const { type, path } = event.data;
+        const { type, path, resetScroll, scrollY } = event.data;
 
         if (type === "xulei-shell-close") {
-          closeShellRoute("push", typeof path === "string" && isHomeRoute(path));
+          closeShellRoute("push", resetScroll === true, typeof scrollY === "number" ? scrollY : undefined);
           return;
         }
 
@@ -1867,6 +1892,9 @@
           if (!isShellRoute(destinationUrl.pathname)) return;
 
           const nextPath = `${destinationUrl.pathname}${destinationUrl.search}${destinationUrl.hash}`;
+          const frame = document.querySelector("#xulei-route-frame");
+          if (frame) frame.dataset.currentPath = nextPath;
+
           const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
           if (nextPath !== currentPath) {
             window.history.pushState({ xuleiShellRoute: true }, "", nextPath);
@@ -2111,7 +2139,7 @@
           event.clientX,
           event.clientY,
           node,
-          isShellRoute(new URL(url, window.location.origin).pathname) ? () => openShellRoute(url, "push") : undefined
+          isShellRoute(new URL(url, window.location.origin).pathname) ? () => openShellRoute(url, "push", { forceReload: true }) : undefined
         );
       }
 
