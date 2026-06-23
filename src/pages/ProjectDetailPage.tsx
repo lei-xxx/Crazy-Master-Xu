@@ -99,13 +99,19 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
     const historyIndex = window.history.state?.idx;
     const returnTo = navigationState?.returnTo ?? storedReturnState?.returnTo;
     const returnScrollY = navigationState?.returnScrollY ?? storedReturnState?.returnScrollY;
-    const usesDocumentNavigation = Boolean(returnTo && !returnTo.startsWith('/portfolio'));
+    const usesDocumentNavigation = Boolean(returnTo && !returnTo.startsWith('/'));
     const navigateBack = () => {
       if (returnTo) {
         window.sessionStorage.removeItem(PROJECT_RETURN_KEY);
 
-        if (returnTo.startsWith('/portfolio')) {
-          navigate(returnTo, { state: { restoreScrollY: returnScrollY } });
+        if (returnTo.startsWith('/')) {
+          if (returnTo.startsWith('/portfolio')) {
+            navigate(returnTo, { state: { restoreScrollY: returnScrollY } });
+            return;
+          }
+
+          writePendingScrollRestore(returnTo, returnScrollY);
+          navigate(returnTo);
           return;
         }
 
@@ -152,7 +158,7 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
         ref={backButtonRef}
         type="button"
         onClick={(event) => goBack(event.currentTarget, { x: event.clientX, y: event.clientY })}
-        className={`fixed right-[106px] top-10 z-[80] inline-flex h-[46px] min-w-[90px] items-center justify-center rounded-full border bg-transparent px-6 text-[13px] font-semibold uppercase tracking-[0.04em] transition active:scale-95 md:right-[120px] md:h-[55px] md:min-w-[112px] md:px-8 md:text-[15px] lg:hidden ${
+        className={`fixed left-4 top-7 z-[80] inline-flex h-[46px] min-w-[90px] items-center justify-center rounded-full border bg-transparent px-6 text-[13px] font-semibold uppercase tracking-[0.04em] transition active:scale-95 md:h-[46px] md:min-w-[112px] md:px-8 md:text-[15px] lg:hidden ${
           isBackButtonOnLight ? 'border-black/75 text-black' : 'border-white/55 text-white'
         }`}
         aria-label="Back"
@@ -187,24 +193,24 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
         <section className="border-b border-white/10 bg-transparent pb-16 pt-32 text-white lg:pb-24 lg:pt-44 xl:pt-48">
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 xl:max-w-[1480px]">
             <div className="max-w-[980px]">
-              <h1 className="text-[40px] font-medium leading-[0.95] tracking-normal text-white md:text-[58px] lg:text-[72px]">
+              <h1 className="text-[32px] font-medium leading-[0.95] tracking-normal text-white md:text-[58px] lg:text-[72px]">
                 {project.title}
               </h1>
             </div>
 
-            <div className="mt-20 flex flex-wrap items-center gap-4 lg:mt-28">
+            <div className="mt-10 flex flex-wrap items-center gap-4 lg:mt-28">
               {projectTags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex h-11 items-center rounded-full border border-white/40 bg-transparent px-7 !text-[18px] font-semibold leading-none text-white"
+                  className="inline-flex h-11 items-center rounded-full border border-white/40 bg-transparent px-7 !text-[16px] font-normal leading-none text-white md:!text-[18px] md:font-semibold"
                 >
                   {tag}
                 </span>
               ))}
             </div>
 
-            <div className="mt-10 max-w-[760px] lg:mt-12">
-              <p className="!text-[18px] font-medium leading-[1.7] tracking-normal text-white md:!text-[20px]">
+            <div className="mt-7 max-w-[760px] lg:mt-12">
+              <p className="!text-[15.3px] font-normal leading-[1.7] tracking-normal text-white md:!text-[20px] md:font-medium">
                 {project.descriptionZh}
               </p>
             </div>

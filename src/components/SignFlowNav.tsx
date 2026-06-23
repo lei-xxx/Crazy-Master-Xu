@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { forwardRef, useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { useAdaptiveButtonTone } from '@/lib/useAdaptiveButtonTone';
 import { usePageTransitionNavigation } from '@/lib/usePageTransitionNavigation';
+import { publicRoute } from '@/lib/utils';
 import './SignFlowNav.css';
 
 interface NavLinkItem {
@@ -14,38 +15,98 @@ interface SignFlowNavProps {
   logo: string;
   logoAlt?: string;
   links: NavLinkItem[];
+  documentNavigation?: boolean;
 }
 
-const AnimatedNavLink = ({
-  href,
-  children,
-  onClick,
-}: {
+type MagneticOptions = {
+  bound?: number;
+  x?: number;
+  y?: number;
+  scale?: number;
+};
+
+const setDockState = (node: HTMLElement, prefix: string, x: number, y: number, scale: number) => {
+  node.style.setProperty(`--${prefix}-x`, `${x.toFixed(2)}px`);
+  node.style.setProperty(`--${prefix}-y`, `${y.toFixed(2)}px`);
+  node.style.setProperty(`--${prefix}-scale`, scale.toFixed(3));
+};
+
+const resetDock = (node: HTMLElement, prefix: string) => {
+  setDockState(node, prefix, 0, 0, 1);
+};
+
+const updateMagneticDock = (
+  node: HTMLElement,
+  event: React.PointerEvent<HTMLElement>,
+  prefix: string,
+  options: MagneticOptions = {},
+) => {
+  if (
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+    !window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  ) {
+    resetDock(node, prefix);
+    return;
+  }
+
+  const rect = node.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const deltaX = event.clientX - centerX;
+  const deltaY = event.clientY - centerY;
+  const distance = Math.hypot(deltaX, deltaY);
+  const bound = Math.max(rect.width, rect.height) * (options.bound ?? 0.72);
+  const proximity = Math.max(0, 1 - distance / bound);
+  const x = (deltaX / rect.width) * (options.x ?? 16) * proximity;
+  const y = (deltaY / rect.height) * (options.y ?? 14) * proximity;
+  const scale = 1 + (options.scale ?? 0.065) * proximity;
+
+  setDockState(node, prefix, x, y, scale);
+};
+
+const desktopNavMagneticOptions = {
+  bound: 3.95,
+  x: 10,
+  y: 10,
+  scale: 0.28,
+};
+
+const AnimatedNavLink = forwardRef<HTMLAnchorElement, {
   href: string;
   children: React.ReactNode;
   onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
-}) => (
+}>(({ href, children, onClick }, ref) => (
   <Link
+    ref={ref}
     to={href}
     onClick={onClick}
+    onPointerMove={(event) => updateMagneticDock(event.currentTarget, event, 'nav-link-dock', desktopNavMagneticOptions)}
+    onPointerLeave={(event) => resetDock(event.currentTarget, 'nav-link-dock')}
     className="sign-flow-nav-link relative inline-flex items-center text-[18px]">
     <span className="sign-flow-nav-track">
       <span className="sign-flow-nav-line text-gray-300">{children}</span>
       <span className="sign-flow-nav-line text-white">{children}</span>
     </span>
   </Link>
-);
+));
 
-export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowNavProps) {
+AnimatedNavLink.displayName = 'AnimatedNavLink';
+
+export default function SignFlowNav({ logo, logoAlt = 'Logo', links, documentNavigation = false }: SignFlowNavProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const navigateWithTransition = usePageTransitionNavigation();
   const [isOpen, setIsOpen] = useState(false);
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-[48px]');
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const isMenuButtonOnLight = useAdaptiveButtonTone(
+    menuButtonRef,
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches && !isOpen,
+  );
   const desktopLogoRef = useRef<HTMLAnchorElement | null>(null);
-  const desktopLogoFrameRef = useRef<number | null>(null);
   const tabletMenuRef = useRef<HTMLDivElement | null>(null);
+  const tabletSpreadRef = useRef<HTMLDivElement | null>(null);
   const tabletPanelRefs = useRef<HTMLElement[]>([]);
   const tabletItemRefs = useRef<HTMLAnchorElement[]>([]);
   const tabletCtaRef = useRef<HTMLAnchorElement | null>(null);
@@ -54,16 +115,39 @@ export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowN
   const tabletCycleRef = useRef(0);
   const shapeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollYRef = useRef(0);
-  const isNavButtonOnLight = useAdaptiveButtonTone(menuButtonRef, typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches);
+  const isProjectDetailRoute = location.pathname.startsWith('/portfolio/');
+  const projectDetailRouteClass = isProjectDetailRoute ? 'sign-flow-project-detail-route' : '';
 
   const closeMenu = () => setIsOpen(false);
-  const isActiveLink = (href: string) => {
-    if (href === '/portfolio') return location.pathname === '/portfolio' || location.pathname.startsWith('/portfolio/');
-    return location.pathname === href;
-  };
-
   const toggleMenu = () => {
     setIsOpen(current => !current);
+  };
+  const isActiveHref = (href: string) => {
+    if (href === '/') return location.pathname === '/';
+    return location.pathname === href || location.pathname.startsWith(`${href}/`);
+  };
+
+  const handleNavigation = (href: string, beforeNavigate?: () => void) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!documentNavigation) {
+      navigateWithTransition(event, href, { beforeNavigate });
+      return;
+    }
+
+    event.preventDefault();
+    beforeNavigate?.();
+    window.location.assign(publicRoute(href));
+  };
+
+  const handleMenuNavigation = (href: string, beforeNavigate?: () => void) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    beforeNavigate?.();
+
+    if (documentNavigation) {
+      window.location.assign(publicRoute(href));
+      return;
+    }
+
+    navigate(href);
   };
   const setTabletPanelRef = (index: number) => (node: HTMLElement | null) => {
     if (node) tabletPanelRefs.current[index] = node;
@@ -106,7 +190,7 @@ export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowN
     const handleScrollDirection = () => {
       const currentScrollY = Math.max(window.scrollY, 0);
       const delta = currentScrollY - lastScrollYRef.current;
-      const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
 
       if (!isDesktop || isOpen || currentScrollY < revealAtTop) {
         setIsHeaderHidden(false);
@@ -133,93 +217,16 @@ export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowN
   }, [isOpen]);
 
   useEffect(() => {
-    const logo = desktopLogoRef.current;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const desktopQuery = window.matchMedia('(min-width: 1024px)');
-
-    if (!logo) return;
-
-    const setDockState = (x: number, y: number, scale: number) => {
-      logo.style.setProperty('--logo-dock-x', `${x.toFixed(2)}px`);
-      logo.style.setProperty('--logo-dock-y', `${y.toFixed(2)}px`);
-      logo.style.setProperty('--logo-dock-scale', scale.toFixed(3));
-    };
-
-    const resetLogo = () => {
-      if (desktopLogoFrameRef.current !== null) {
-        window.cancelAnimationFrame(desktopLogoFrameRef.current);
-        desktopLogoFrameRef.current = null;
-      }
-
-      setDockState(0, 0, 1);
-    };
-
-    const updateLogo = (pointerX: number, pointerY: number) => {
-      const bound = 190;
-      const maxScale = 1.28;
-      const maxShift = 10;
-      const rect = logo.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const distanceX = pointerX - centerX;
-      const distanceY = pointerY - centerY;
-      const distance = Math.hypot(distanceX, distanceY);
-
-      if (distance >= bound) {
-        setDockState(0, 0, 1);
-        return;
-      }
-
-      const phase = (distance / bound) * (Math.PI / 2);
-      const proximity = Math.cos(phase);
-      const scale = 1 + (maxScale - 1) * proximity;
-      const directionX = distance === 0 ? 0 : distanceX / distance;
-      const directionY = distance === 0 ? 0 : distanceY / distance;
-
-      setDockState(directionX * maxShift * proximity, directionY * maxShift * proximity, scale);
-    };
-
-    let pointerX = 0;
-    let pointerY = 0;
-    const handlePointerMove = (event: PointerEvent) => {
-      if (!desktopQuery.matches || reduceMotion.matches) {
-        resetLogo();
-        return;
-      }
-
-      pointerX = event.clientX;
-      pointerY = event.clientY;
-      if (desktopLogoFrameRef.current !== null) return;
-
-      desktopLogoFrameRef.current = window.requestAnimationFrame(() => {
-        desktopLogoFrameRef.current = null;
-        updateLogo(pointerX, pointerY);
-      });
-    };
-
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerleave', resetLogo);
-    window.addEventListener('resize', resetLogo);
-
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerleave', resetLogo);
-      window.removeEventListener('resize', resetLogo);
-      resetLogo();
-    };
-  }, []);
-
-  useEffect(() => {
     const root = tabletMenuRef.current;
-    const panels = tabletPanelRefs.current.filter(Boolean);
+    const spread = tabletSpreadRef.current;
     const items = tabletItemRefs.current.filter(Boolean);
     const cta = tabletCtaRef.current;
-    const isTablet = window.matchMedia('(max-width: 1023px)').matches;
+    const button = menuButtonRef.current;
+    const isTablet = window.matchMedia('(max-width: 767px)').matches;
 
-    if (!root || !cta || panels.length === 0 || !isTablet) return;
+    if (!root || !spread || !cta || !button || !isTablet) return;
 
     const ease = {
-      back: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
       in: 'cubic-bezier(0.7, 0, 0.84, 0)',
       soft: 'cubic-bezier(0.22, 1, 0.36, 1)',
     };
@@ -246,20 +253,40 @@ export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowN
     const animateTo = (node: HTMLElement, keyframes: Keyframe[], options: KeyframeAnimationOptions) =>
       remember(node.animate(keyframes, { fill: 'forwards', easing: ease.soft, ...options }));
 
+    const getSpreadGeometry = () => {
+      const rect = button.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const radius = Math.ceil(Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))) + 72;
+
+      return { x, y, radius };
+    };
+
+    const setSpreadGeometry = ({ x, y, radius }: ReturnType<typeof getSpreadGeometry>) => {
+      root.style.setProperty('--menu-origin-x', `${x}px`);
+      root.style.setProperty('--menu-origin-y', `${y}px`);
+      root.style.setProperty('--menu-spread-size', `${radius * 2}px`);
+    };
+
+    const setSpreadScale = (scale: number) => {
+      spread.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    };
+
+    const setContentVisible = (visible: boolean) => {
+      [...items, cta].forEach((node) => {
+        node.style.opacity = visible ? '1' : '0';
+        node.style.transform = 'none';
+      });
+    };
+
     const resetClosed = () => {
+      const geometry = getSpreadGeometry();
       root.setAttribute('aria-hidden', 'true');
       root.style.visibility = 'hidden';
       root.style.pointerEvents = 'none';
-      panels.forEach((panel) => {
-        panel.style.opacity = '1';
-        panel.style.transform = 'translate3d(110%, 0, 0) rotate(0deg)';
-      });
-      items.forEach((item) => {
-        item.style.opacity = '0';
-        item.style.transform = 'translateX(-18px)';
-      });
-      cta.style.opacity = '0';
-      cta.style.transform = 'translateY(8px)';
+      setSpreadGeometry(geometry);
+      setSpreadScale(0);
+      setContentVisible(false);
       tabletPhaseRef.current = 'closed';
     };
 
@@ -272,58 +299,68 @@ export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowN
     const openTabletMenu = async () => {
       const run = ++tabletCycleRef.current;
       cancelRunning();
+      const geometry = getSpreadGeometry();
+      setSpreadGeometry(geometry);
+      setSpreadScale(0);
+      setContentVisible(false);
       showMenu();
       tabletPhaseRef.current = 'opening';
 
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setSpreadScale(1);
+        setContentVisible(true);
+        tabletPhaseRef.current = 'open';
+        return;
+      }
+
+      const spreadDuration = 560;
+      const contentRevealDelay = spreadDuration * 0.2;
+
       await Promise.all([
-        ...panels.map((panel, index) =>
-          animateTo(panel, [{ transform: getComputedStyle(panel).transform }, { transform: 'translate3d(0%, 0, 0) rotate(0deg)' }], {
-            duration: 660,
-            delay: index * 90,
-            easing: ease.back,
-          }),
-        ),
-        ...items.map((item, index) =>
-          animateTo(item, [{ opacity: 0, transform: 'translateX(-18px)' }, { opacity: 1, transform: 'translateX(0)' }], {
-            duration: 720,
-            delay: 150 + index * 36,
-          }),
-        ),
-        animateTo(cta, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], {
-          duration: 360,
-          delay: 430,
+        animateTo(spread, [{ transform: 'translate(-50%, -50%) scale(0)' }, { transform: 'translate(-50%, -50%) scale(1)' }], {
+          duration: spreadDuration,
+          easing: ease.soft,
         }),
+        ...[...items, cta].map((node) =>
+          animateTo(node, [{ opacity: 0 }, { opacity: 1 }], {
+            delay: contentRevealDelay,
+            duration: 220,
+            easing: ease.soft,
+          }),
+        ),
       ]);
+      setSpreadScale(1);
 
       if (tabletCycleRef.current === run) tabletPhaseRef.current = 'open';
     };
 
     const closeTabletMenu = async () => {
       const run = ++tabletCycleRef.current;
-      const reversing = tabletPhaseRef.current === 'opening';
       cancelRunning();
-      tabletPhaseRef.current = reversing ? 'reversing' : 'exiting';
+      tabletPhaseRef.current = 'exiting';
+      const geometry = getSpreadGeometry();
+      setSpreadGeometry(geometry);
+
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        resetClosed();
+        return;
+      }
+
+      const spreadCloseDuration = 360;
+      const contentHideDelay = spreadCloseDuration * 0.5;
 
       await Promise.all([
-        ...[...panels].reverse().map((panel, index) =>
-          animateTo(panel, [{ transform: getComputedStyle(panel).transform }, {
-            transform: reversing ? 'translate3d(110%, 0, 0) rotate(0deg)' : `translate3d(${index % 2 === 0 ? -8 : 10}px, 112vh, 0) rotate(${index % 2 === 0 ? -16 : 18}deg)`,
-          }], {
-            duration: reversing ? 430 : 520,
-            delay: index * (reversing ? 26 : 46),
-            easing: ease.in,
-          }),
-        ),
-        ...items.map((item) =>
-          animateTo(item, [{ opacity: getComputedStyle(item).opacity, transform: getComputedStyle(item).transform }, { opacity: 0, transform: 'translateX(-18px)' }], {
-            duration: 200,
-            easing: ease.in,
-          }),
-        ),
-        animateTo(cta, [{ opacity: getComputedStyle(cta).opacity, transform: getComputedStyle(cta).transform }, { opacity: 0, transform: 'translateY(8px)' }], {
-          duration: 160,
+        animateTo(spread, [{ transform: 'translate(-50%, -50%) scale(1)' }, { transform: 'translate(-50%, -50%) scale(0)' }], {
+          duration: spreadCloseDuration,
           easing: ease.in,
         }),
+        ...[...items, cta].map((node) =>
+          animateTo(node, [{ opacity: getComputedStyle(node).opacity }, { opacity: 0 }], {
+            delay: contentHideDelay,
+            duration: 140,
+            easing: ease.in,
+          }),
+        ),
       ]);
 
       if (tabletCycleRef.current === run) resetClosed();
@@ -354,23 +391,25 @@ export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowN
   return (
     <>
     <header
-      className={`sign-flow-header ${isHeaderHidden ? 'sign-flow-header-hidden' : ''} fixed left-1/2 top-6 z-[70] flex w-[calc(100%-2rem)] -translate-x-1/2 flex-col items-center px-8 py-4 text-white transition-all duration-300 ease-in-out lg:left-0 lg:top-0 lg:w-full lg:translate-x-0 lg:px-0 lg:py-8 ${headerShapeClass}`}>
-      <div className="relative z-10 flex w-full items-center justify-between gap-x-8 lg:mx-auto lg:max-w-[1280px] lg:px-8">
+      className={`sign-flow-header ${projectDetailRouteClass} ${isHeaderHidden ? 'sign-flow-header-hidden' : ''} fixed left-1/2 top-6 z-[70] flex w-[calc(100%-2rem)] -translate-x-1/2 flex-col items-center px-8 py-4 text-white transition-all duration-300 ease-in-out md:left-0 md:top-0 md:w-full md:translate-x-0 md:px-0 md:py-8 ${headerShapeClass}`}>
+      <div className="sign-flow-header-inner relative z-10 flex w-full items-center justify-between gap-x-8 md:mx-auto md:max-w-[1280px] md:px-8">
         <Link
           ref={desktopLogoRef}
           to="/"
-          onClick={(event) => navigateWithTransition(event, '/', { beforeNavigate: closeMenu })}
-          className="sign-flow-logo-link hidden items-center lg:flex"
+          onClick={handleNavigation('/', closeMenu)}
+          onPointerMove={(event) => updateMagneticDock(event.currentTarget, event, 'logo-dock', desktopNavMagneticOptions)}
+          onPointerLeave={(event) => resetDock(event.currentTarget, 'logo-dock')}
+          className="sign-flow-logo-link sign-flow-desktop-logo hidden items-center md:flex"
         >
           <img src={logo} alt={logoAlt} className="h-[48px] w-auto object-contain" />
         </Link>
 
-        <nav className="hidden items-center space-x-5 lg:ml-auto lg:flex lg:space-x-12">
+        <nav className="sign-flow-desktop-nav hidden items-center space-x-5 md:ml-auto md:flex md:space-x-12">
           {links.map(link => (
             <AnimatedNavLink
               key={link.href}
               href={link.href}
-              onClick={(event) => navigateWithTransition(event, link.href)}
+              onClick={handleNavigation(link.href)}
             >
               {link.label}
             </AnimatedNavLink>
@@ -379,29 +418,30 @@ export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowN
 
         <button
           ref={menuButtonRef}
-          className={`ml-auto flex h-[46px] w-[46px] items-center justify-center rounded-full border transition active:scale-95 focus:outline-none md:h-[55px] md:w-[55px] lg:hidden ${
+          className={`sign-flow-menu-button ml-auto flex h-[46px] w-[46px] items-center justify-center rounded-full border transition active:scale-95 focus:outline-none md:hidden ${
             isOpen
               ? 'border-white bg-white text-black'
-              : isNavButtonOnLight
+              : isMenuButtonOnLight
                 ? 'border-black/75 bg-transparent text-black'
                 : 'border-white/75 bg-transparent text-white'
           }`}
           onClick={toggleMenu}
           aria-label={isOpen ? 'Close Menu' : 'Open Menu'}
           type="button">
-          <ArrowUpRight className={`h-6 w-6 transition-transform duration-300 md:h-7 md:w-7 ${isOpen ? 'rotate-[360deg]' : 'rotate-180'}`} strokeWidth={2.2} />
+          <ArrowUpRight className={`h-6 w-6 transition-transform duration-300 ${isOpen ? 'rotate-180' : 'rotate-0'}`} strokeWidth={2.2} />
         </button>
       </div>
     </header>
 
     <div
       ref={tabletMenuRef}
-      className={`sign-flow-tablet-menu fixed inset-0 z-[60] overflow-hidden text-white lg:hidden ${
+      className={`sign-flow-tablet-menu ${projectDetailRouteClass} fixed inset-0 z-[60] overflow-hidden text-white md:hidden ${
         isOpen ? '' : 'pointer-events-none'
       }`}
       aria-hidden={!isOpen}
       onClick={closeMenu}
     >
+      <div ref={tabletSpreadRef} className="sign-flow-tablet-spread" aria-hidden="true" />
       <aside
         ref={setTabletPanelRef(0)}
         className="sign-flow-tablet-panel sign-flow-tablet-menu-card bg-[#111111]"
@@ -414,10 +454,8 @@ export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowN
               ref={setTabletItemRef(index)}
               key={link.href}
               to={link.href}
-              onClick={(event) => navigateWithTransition(event, link.href, { beforeNavigate: closeMenu })}
-              className={`sign-flow-tablet-link text-[32px] font-medium capitalize leading-none tracking-[-0.0em] ${
-                isActiveLink(link.href) ? 'text-white' : 'text-white/45'
-              }`}
+              onClick={handleMenuNavigation(link.href, closeMenu)}
+              className={`sign-flow-tablet-link text-[32px] font-medium capitalize leading-none tracking-[-0.0em] ${isActiveHref(link.href) ? 'is-active' : ''}`}
             >
               {link.label.toLowerCase()}
             </Link>
@@ -433,8 +471,8 @@ export default function SignFlowNav({ logo, logoAlt = 'Logo', links }: SignFlowN
         <Link
           ref={tabletCtaRef}
           to="/portfolio"
-          onClick={(event) => navigateWithTransition(event, '/portfolio', { beforeNavigate: closeMenu })}
-          className="sign-flow-tablet-cta flex h-20 w-full items-center justify-between rounded-[18px] bg-[#FF5825] px-7 font-semibold capitalize tracking-[-0.0em] text-white shadow-[0_24px_70px_rgba(255,88,37,0.25)]"
+          onClick={handleMenuNavigation('/portfolio', closeMenu)}
+          className="sign-flow-tablet-cta flex h-20 w-full items-center justify-between rounded-[18px] bg-white px-7 font-semibold capitalize tracking-[-0.0em] text-black"
         >
           <span className="!text-[20px] leading-none">projects</span>
           <ArrowUpRight className="h-9 w-9" />

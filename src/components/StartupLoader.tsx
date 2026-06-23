@@ -1,29 +1,15 @@
 import { useEffect, useState } from 'react';
+import { HOME_SCENE_READY_EVENT, isHomeSceneReady, preloadHomeSceneModule } from '@/lib/homeScenePreload';
 import { publicAsset } from '../lib/utils';
 
-const LOADER_SESSION_KEY = 'xulei-startup-loader-seen';
 const MIN_VISIBLE_MS = 2000;
 const MAX_WAIT_MS = 1800;
+const HOME_SCENE_WAIT_MS = 3000;
 const LEAVE_ANIMATION_MS = 650;
 const FAILSAFE_HIDE_MS = 4200;
 
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
-const hasSeenLoader = () => {
-  try {
-    return sessionStorage.getItem(LOADER_SESSION_KEY) === 'true';
-  } catch {
-    return false;
-  }
-};
-
-const markLoaderSeen = () => {
-  try {
-    sessionStorage.setItem(LOADER_SESSION_KEY, 'true');
-  } catch {
-    // Storage can be unavailable in strict privacy contexts.
-  }
-};
 
 const waitForNextPaint = () =>
   new Promise<void>((resolve) => {
@@ -59,12 +45,35 @@ const preloadVisibleImages = async () => {
   );
 };
 
+const isInitialHomeRoute = () => {
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+  const normalizedBase = basePath.replace(/\/$/, '') || '/';
+  const normalizedPath = window.location.pathname.replace(/\/$/, '') || '/';
+
+  return normalizedPath === normalizedBase;
+};
+
+const waitForHomeScene = async () => {
+  if (!isInitialHomeRoute() || isHomeSceneReady()) return;
+
+  void preloadHomeSceneModule().catch(() => {
+    // The homepage effect has its own timeout path; do not block the loader on CDN failure.
+  });
+
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      window.addEventListener(HOME_SCENE_READY_EVENT, () => resolve(), { once: true });
+    }),
+    wait(HOME_SCENE_WAIT_MS),
+  ]);
+};
+
 const waitForCriticalResources = async () => {
   const fontReady = 'fonts' in document ? document.fonts.ready : Promise.resolve();
 
   await Promise.race([
-    Promise.allSettled([fontReady, preloadVisibleImages()]),
-    wait(MAX_WAIT_MS),
+    Promise.allSettled([fontReady, preloadVisibleImages(), waitForHomeScene()]),
+    wait(MAX_WAIT_MS + HOME_SCENE_WAIT_MS),
   ]);
 };
 
@@ -73,19 +82,20 @@ export default function StartupLoader() {
   const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
-    if (hasSeenLoader()) return;
+    if (!isInitialHomeRoute()) return;
 
     let isMounted = true;
+    let isHiding = false;
     let failsafeTimer = 0;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     setShouldRender(true);
 
     const hideLoader = async () => {
-      if (!isMounted) return;
+      if (!isMounted || isHiding) return;
+      isHiding = true;
       await waitForNextPaint();
       if (!isMounted) return;
-      markLoaderSeen();
       setIsLeaving(true);
       await wait(LEAVE_ANIMATION_MS);
 

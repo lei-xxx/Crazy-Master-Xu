@@ -2,7 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Tag } from 'lucide-react';
+import { Tag } from 'lucide-react';
+import GradualBlur from '@/components/GradualBlur';
 import { ButtonColorful } from '@/components/ui/button-colorful';
 import { projects, type Project } from '@/data/projects';
 import { runCirclePageTransition } from '@/lib/pageTransition';
@@ -235,6 +236,17 @@ const PortfolioPage = () => {
 
   return (
     <div className="relative overflow-hidden pt-16 bg-black">
+      <GradualBlur
+        target="page"
+        position="top"
+        height="7rem"
+        strength={2.5}
+        divCount={6}
+        curve="bezier"
+        exponential
+        opacity={1}
+        style={{ zIndex: 55 }}
+      />
       <div className="relative z-10">
       {/* Hero Section */}
       <section className="text-white pb-8 pt-16 lg:py-20">
@@ -344,14 +356,6 @@ const PortfolioPage = () => {
                   
                   <div className="mb-5 flex items-center justify-between gap-4 lg:mb-8 lg:block">
                     <h3 className="text-[22px] font-semibold text-white lg:text-3xl">{project.title}</h3>
-                    <button
-                      type="button"
-                      aria-label={`View ${project.title} project`}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/80 text-white transition active:scale-95 lg:hidden"
-                      onClick={(event) => openProject(project, event.currentTarget, { x: event.clientX, y: event.clientY })}
-                    >
-                      <ArrowUpRight className="h-5 w-5" />
-                    </button>
                   </div>
 
                   <div className="max-w-[760px] space-y-4 lg:space-y-6">

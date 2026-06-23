@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import type { MouseEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { runCirclePageTransition } from '@/lib/pageTransition';
-import { closeShellRoute, isInsideShellFrame, publicRoute } from '@/lib/utils';
 
 type TransitionClickOptions = {
   beforeNavigate?: () => void;
@@ -48,20 +47,7 @@ export function usePageTransitionNavigation() {
     event.preventDefault();
     options.beforeNavigate?.();
 
-    const usesDocumentNavigation = normalizePath(destinationUrl.pathname) === '/';
-
-    const isShellFrame = isInsideShellFrame();
-
     const go = () => {
-      if (usesDocumentNavigation) {
-        if (isShellFrame && closeShellRoute(publicRoute(destination), { resetScroll: true })) {
-          return;
-        }
-
-        window.location.assign(publicRoute(destination));
-        return;
-      }
-
       navigate(destination);
     };
 
@@ -75,7 +61,6 @@ export function usePageTransitionNavigation() {
       originY: event.clientY,
       fallbackElement: event.currentTarget,
       onCovered: go,
-      holdAfterCovered: usesDocumentNavigation && !isShellFrame,
     });
 
     return true;

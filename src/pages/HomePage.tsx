@@ -1,466 +1,569 @@
-
-import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import {ArrowRight, Star, Users, Award, Palette, Layout, Layers, Sparkles, Globe} from 'lucide-react';
-import { ShimmerButton } from '../components/ShimmerButton';
-import { PaperDesignBackground } from '../components/PaperDesignBackground';
-import { SplineRobotShowcase } from '../components/SplineRobotShowcase';
-import GradualBlur from '@/components/GradualBlur';
+import { useEffect, useMemo, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { projects } from '@/data/projects';
+import { markHomeSceneReady, preloadHomeSceneModule, resetHomeSceneReady } from '@/lib/homeScenePreload';
+import { runCirclePageTransition } from '@/lib/pageTransition';
+import { publicAsset } from '@/lib/utils';
 import { usePageTransitionNavigation } from '@/lib/usePageTransitionNavigation';
 import './HomePage.css';
 
-const HomePage = () => {
+const aboutWords = [
+  "I'm", 'a', 'UI/UX', 'designer', 'who', 'enjoys', 'making', 'products', 'feel', 'simple,', 'useful,', 'and', 'a', 'little', 'more', 'human.', 'I', 'like', 'playful', 'details,', 'clean', 'systems,', 'and', 'the', 'occasional', 'weird', 'idea', 'that', 'somehow', 'works.',
+];
+
+const selectedProjectSlugs = [
+  'personnel-logistics-management-system',
+  'petro-mesh-international-dmcc',
+  'personnel-positioning-system',
+  'smart-park-management-system',
+  'human-resources-management-system',
+  'customer-management-system',
+];
+
+const mobileHiddenProjectSlugs = new Set([
+  'smart-park-management-system',
+  'customer-management-system',
+]);
+
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+const smoothstep = (edge0: number, edge1: number, value: number) => {
+  const x = clamp01((value - edge0) / (edge1 - edge0));
+  return x * x * (3 - 2 * x);
+};
+const lerp = (start: number, end: number, amount: number) => start + (end - start) * amount;
+
+const setDockState = (node: HTMLElement, prefix: string, x: number, y: number, scale: number) => {
+  node.style.setProperty(`--${prefix}-x`, `${x.toFixed(2)}px`);
+  node.style.setProperty(`--${prefix}-y`, `${y.toFixed(2)}px`);
+  node.style.setProperty(`--${prefix}-scale`, scale.toFixed(3));
+};
+
+const resetDock = (node: HTMLElement, prefix: string) => {
+  setDockState(node, prefix, 0, 0, 1);
+};
+
+const updateMagneticDock = (
+  node: HTMLElement,
+  event: PointerEvent | React.PointerEvent<HTMLElement>,
+  prefix: string,
+  options: { bound?: number; x?: number; y?: number; scale?: number } = {},
+) => {
+  if (
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+    !window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  ) {
+    resetDock(node, prefix);
+    return;
+  }
+
+  const rect = node.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const deltaX = event.clientX - centerX;
+  const deltaY = event.clientY - centerY;
+  const distance = Math.hypot(deltaX, deltaY);
+  const bound = Math.max(rect.width, rect.height) * (options.bound ?? 0.72);
+  const proximity = Math.max(0, 1 - distance / bound);
+  const x = (deltaX / rect.width) * (options.x ?? 16) * proximity;
+  const y = (deltaY / rect.height) * (options.y ?? 14) * proximity;
+  const scale = 1 + (options.scale ?? 0.065) * proximity;
+
+  setDockState(node, prefix, x, y, scale);
+};
+
+export default function HomePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const navigateWithTransition = usePageTransitionNavigation();
-  const [backgroundExitProgress, setBackgroundExitProgress] = useState(0);
-  const [isMobileTouching, setIsMobileTouching] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [isHeaderBlurVisible, setIsHeaderBlurVisible] = useState(false);
-  const [activeServiceIndex, setActiveServiceIndex] = useState(0);
-  const servicesCarouselRef = useRef<HTMLDivElement | null>(null);
+  const homeRef = useRef<HTMLDivElement | null>(null);
+  const sceneRef = useRef<HTMLDivElement | null>(null);
+  const aboutPanelRef = useRef<HTMLParagraphElement | null>(null);
+  const workPanelRef = useRef<HTMLElement | null>(null);
+  const projectListRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedProjects = useMemo(
+    () => selectedProjectSlugs.map((slug) => projects.find((project) => project.slug === slug)).filter(Boolean),
+    [],
+  );
 
   useEffect(() => {
-    let frameId = 0;
+    if (typeof window === 'undefined') return;
 
-    const updateBackgroundExit = () => {
-      const viewportHeight = window.innerHeight || 1;
-      const nextProgress = Math.min(Math.max(window.scrollY / viewportHeight, 0), 1);
-      setBackgroundExitProgress(nextProgress);
-    };
+    const restoreKey = 'xulei-pending-scroll-restore';
+    const rawValue = window.sessionStorage.getItem(restoreKey);
+    if (!rawValue) return;
 
-    const onScroll = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(updateBackgroundExit);
-    };
+    try {
+      const restoreState = JSON.parse(rawValue) as { returnTo?: string; scrollY?: number; timestamp?: number };
+      const currentPath = `${location.pathname}${location.search}${location.hash}`;
+      const isExpired = Boolean(restoreState.timestamp && Date.now() - restoreState.timestamp > 30 * 60 * 1000);
 
-    updateBackgroundExit();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+      if (isExpired || restoreState.returnTo !== currentPath || typeof restoreState.scrollY !== 'number') return;
 
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, []);
-
-  useEffect(() => {
-    let resumeTimer = 0;
-    const mobileQuery = window.matchMedia('(max-width: 1023px)');
-
-    const updateViewport = () => {
-      setIsMobileViewport(mobileQuery.matches);
-    };
-    const pause = () => {
-      if (!mobileQuery.matches) return;
-      window.clearTimeout(resumeTimer);
-      setIsMobileTouching(true);
-    };
-
-    const resume = () => {
-      if (!mobileQuery.matches) return;
-      window.clearTimeout(resumeTimer);
-      resumeTimer = window.setTimeout(() => setIsMobileTouching(false), 300);
-    };
-
-    updateViewport();
-    mobileQuery.addEventListener('change', updateViewport);
-    window.addEventListener('touchstart', pause, { passive: true });
-    window.addEventListener('touchend', resume, { passive: true });
-    window.addEventListener('touchcancel', resume, { passive: true });
-
-    return () => {
-      window.clearTimeout(resumeTimer);
-      mobileQuery.removeEventListener('change', updateViewport);
-      window.removeEventListener('touchstart', pause);
-      window.removeEventListener('touchend', resume);
-      window.removeEventListener('touchcancel', resume);
-    };
-  }, []);
-
-  useEffect(() => {
-    let frameId = 0;
-    const desktopQuery = window.matchMedia('(min-width: 1024px)');
-
-    const updateHeaderBlur = () => {
-      if (!desktopQuery.matches) {
-        setIsHeaderBlurVisible(false);
-        return;
-      }
-
-      const navSafeBottom = 112;
-      const contentNodes = Array.from(document.querySelectorAll<HTMLElement>('[data-home-blur-content="true"]'));
-      const hasContentUnderNav = contentNodes.some((node) => {
-        const rect = node.getBoundingClientRect();
-        return rect.top < navSafeBottom && rect.bottom > 0;
+      window.sessionStorage.removeItem(restoreKey);
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: restoreState.scrollY, left: 0, behavior: 'auto' });
       });
+    } catch {
+      window.sessionStorage.removeItem(restoreKey);
+    }
+  }, [location.hash, location.pathname, location.search]);
 
-      setIsHeaderBlurVisible(hasContentUnderNav);
+  useEffect(() => {
+    const mount = sceneRef.current;
+    const home = homeRef.current;
+    const aboutPanel = aboutPanelRef.current;
+    const workPanel = workPanelRef.current;
+    const projectRotatorList = projectListRef.current;
+    if (!mount || !home || !aboutPanel || !workPanel || !projectRotatorList) return;
+
+    let disposed = false;
+    let cleanupScene = () => {};
+    resetHomeSceneReady();
+
+    void preloadHomeSceneModule().then((THREE) => {
+      if (disposed) return;
+
+    let viewportHeight = window.innerHeight || 1;
+    let isMobileViewport = window.matchMedia('(max-width: 767px)').matches;
+    let animationFrame = 0;
+    const variableCache = new Map<string, string>();
+    const documentStyle = document.documentElement.style;
+    const rootStyles = getComputedStyle(home);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, mount.clientWidth / mount.clientHeight, 0.1, 1000);
+    camera.position.z = 3;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setSize(mount.clientWidth, mount.clientHeight);
+    mount.appendChild(renderer.domElement);
+
+    const geometry = new THREE.IcosahedronGeometry(1.2, 48);
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        pointLightPos: { value: new THREE.Vector3(0, 0, 5) },
+        color: { value: new THREE.Color(rootStyles.getPropertyValue('--sky-300').trim() || '#ffffff') },
+        opacity: { value: 1 },
+      },
+      vertexShader: `
+        uniform float time;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
+        vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+        float snoise(vec3 v) {
+          const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
+          const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+          vec3 i = floor(v + dot(v, C.yyy));
+          vec3 x0 = v - i + dot(i, C.xxx);
+          vec3 g = step(x0.yzx, x0.xyz);
+          vec3 l = 1.0 - g;
+          vec3 i1 = min(g.xyz, l.zxy);
+          vec3 i2 = max(g.xyz, l.zxy);
+          vec3 x1 = x0 - i1 + C.xxx;
+          vec3 x2 = x0 - i2 + C.yyy;
+          vec3 x3 = x0 - D.yyy;
+          i = mod289(i);
+          vec4 p = permute(permute(permute(
+            i.z + vec4(0.0, i1.z, i2.z, 1.0))
+            + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+            + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+          float n_ = 0.142857142857;
+          vec3 ns = n_ * D.wyz - D.xzx;
+          vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+          vec4 x_ = floor(j * ns.z);
+          vec4 y_ = floor(j - 7.0 * x_);
+          vec4 x = x_ * ns.x + ns.yyyy;
+          vec4 y = y_ * ns.x + ns.yyyy;
+          vec4 h = 1.0 - abs(x) - abs(y);
+          vec4 b0 = vec4(x.xy, y.xy);
+          vec4 b1 = vec4(x.zw, y.zw);
+          vec4 s0 = floor(b0) * 2.0 + 1.0;
+          vec4 s1 = floor(b1) * 2.0 + 1.0;
+          vec4 sh = -step(h, vec4(0.0));
+          vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+          vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+          vec3 p0 = vec3(a0.xy, h.x);
+          vec3 p1 = vec3(a0.zw, h.y);
+          vec3 p2 = vec3(a1.xy, h.z);
+          vec3 p3 = vec3(a1.zw, h.w);
+          vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+          p0 *= norm.x;
+          p1 *= norm.y;
+          p2 *= norm.z;
+          p3 *= norm.w;
+          vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
+          m = m * m;
+          return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+        }
+
+        void main() {
+          vNormal = normal;
+          vPosition = position;
+          float displacement = snoise(position * 2.0 + time * 0.5) * 0.2;
+          vec3 newPosition = position + normal * displacement;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 color;
+        uniform vec3 pointLightPos;
+        uniform float opacity;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+          vec3 lightDir = normalize(pointLightPos - vPosition);
+          float diffuse = max(dot(normal, lightDir), 0.0);
+          float fresnel = 1.0 - dot(normal, vec3(0.0, 0.0, 1.0));
+          fresnel = pow(fresnel, 2.0);
+          float contrast = pow(diffuse, 1.55) * 1.45 + pow(fresnel, 2.25) * 0.82;
+          contrast = smoothstep(0.06, 0.92, contrast);
+          vec3 finalColor = color * contrast;
+          gl_FragColor = vec4(finalColor, opacity);
+        }
+      `,
+      wireframe: true,
+      transparent: true,
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+    pointLight.position.set(0, 0, 5);
+    scene.add(pointLight);
+
+    const setRootVariable = (name: string, value: string) => {
+      if (variableCache.get(name) === value) return;
+      variableCache.set(name, value);
+      documentStyle.setProperty(name, value);
     };
 
-    const onScrollOrResize = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(updateHeaderBlur);
+    const updateCachedLayoutMetrics = () => {
+      viewportHeight = window.innerHeight || 1;
+      isMobileViewport = window.matchMedia('(max-width: 767px)').matches;
     };
 
-    updateHeaderBlur();
-    window.addEventListener('scroll', onScrollOrResize, { passive: true });
-    window.addEventListener('resize', onScrollOrResize);
-    desktopQuery.addEventListener('change', updateHeaderBlur);
+    const animate = (t: number) => {
+      const currentScroll = window.scrollY || window.pageYOffset || 0;
+      const easedScrollProgress = currentScroll / viewportHeight;
+      const toLeftBottom = smoothstep(0, 1, easedScrollProgress);
+      const toProjectCenter = smoothstep(1, 2, easedScrollProgress);
+      const timing = isMobileViewport
+        ? {
+            introStart: 0.04,
+            introEnd: 0.34,
+            aboutStart: 0.62,
+            aboutEnd: 0.76,
+            aboutExitStart: 1.28,
+            aboutExitEnd: 1.54,
+            workStart: 1.08,
+            workEnd: 1.34,
+          }
+        : {
+            introStart: 0.08,
+            introEnd: 0.46,
+            aboutStart: 0.82,
+            aboutEnd: 0.98,
+            aboutExitStart: 1.18,
+            aboutExitEnd: 1.5,
+            workStart: 1.38,
+            workEnd: 1.68,
+          };
+      const introFade = smoothstep(timing.introStart, timing.introEnd, easedScrollProgress);
+      const aboutFadeIn = smoothstep(timing.aboutStart, timing.aboutEnd, easedScrollProgress);
+      const aboutFadeOut = smoothstep(timing.aboutExitStart, timing.aboutExitEnd, easedScrollProgress);
+      const aboutIsVisible = aboutFadeIn > 0.02 && aboutFadeOut < 0.98;
+      const aboutIsExiting = aboutFadeOut > 0.02 && aboutFadeOut < 0.98;
+      const workProgress = smoothstep(timing.workStart, timing.workEnd, easedScrollProgress);
+      const leftBottomX = lerp(0, -1.55, toLeftBottom);
+      const leftBottomY = lerp(0, -0.92, toLeftBottom);
+      const largeScale = lerp(0.72, 1.34, toLeftBottom);
+      const sceneX = lerp(leftBottomX, 0, toProjectCenter);
+      const sceneY = lerp(leftBottomY, 0, toProjectCenter);
+      const sceneScale = lerp(largeScale, 4.1, toProjectCenter);
+
+      mesh.position.x = sceneX;
+      mesh.position.y = sceneY;
+      mesh.scale.set(sceneScale, sceneScale, sceneScale);
+      material.uniforms.opacity.value = lerp(1, 0.2, smoothstep(1.72, 2.08, easedScrollProgress));
+      setRootVariable('--intro-opacity', `${1 - introFade}`);
+      aboutPanel.classList.toggle('is-visible', aboutIsVisible);
+      aboutPanel.classList.toggle('is-exiting', aboutIsExiting);
+      const visibleWorkOpacity = workProgress;
+      const workEnterY = (1 - workProgress) * 72;
+      setRootVariable('--work-opacity', `${visibleWorkOpacity}`);
+      setRootVariable('--work-enter-y', `${workEnterY}px`);
+      workPanel.classList.toggle('is-visible', visibleWorkOpacity > 0.02);
+      setRootVariable('--radial-mask-opacity', `${smoothstep(1.86, 2.16, easedScrollProgress)}`);
+      material.uniforms.time.value = t * 0.0003;
+      mesh.rotation.y += 0.0005;
+      mesh.rotation.x += 0.0002;
+      renderer.render(scene, camera);
+      animationFrame = window.requestAnimationFrame(animate);
+    };
+
+    const resize = () => {
+      updateCachedLayoutMetrics();
+      const width = mount.clientWidth;
+      const height = mount.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const x = (event.clientX / window.innerWidth) * 2 - 1;
+      const y = -(event.clientY / window.innerHeight) * 2 + 1;
+      const vec = new THREE.Vector3(x, y, 0.5).unproject(camera);
+      const dir = vec.sub(camera.position).normalize();
+      const dist = -camera.position.z / dir.z;
+      const pos = camera.position.clone().add(dir.multiplyScalar(dist));
+      pointLight.position.copy(pos);
+      material.uniforms.pointLightPos.value.copy(pos);
+    };
+
+    const dockNodes = [
+      home.querySelector<HTMLElement>('.copy'),
+      aboutPanel,
+      ...Array.from(home.querySelectorAll<HTMLElement>('.home-content-dock')),
+    ].filter(Boolean) as HTMLElement[];
+    const dockHandlers = dockNodes.map((dock) => {
+      const move = (event: PointerEvent) => updateMagneticDock(dock, event, 'content-dock', { bound: 1.05, x: 6, y: 5, scale: 0.018 });
+      const leave = () => resetDock(dock, 'content-dock');
+      dock.addEventListener('pointermove', move);
+      dock.addEventListener('pointerleave', leave);
+      return { dock, move, leave };
+    });
+
+    const setProjectGridHoverColumn = (index?: number) => {
+      projectRotatorList.classList.remove('is-hovering-col-1', 'is-hovering-col-2', 'is-hovering-col-3');
+      if (typeof index !== 'number') return;
+      projectRotatorList.classList.add(`is-hovering-col-${(index % 3) + 1}`);
+    };
+
+    const items = Array.from(home.querySelectorAll<HTMLElement>('.project-rotator-item'));
+    const itemHandlers = items.map((item, index) => {
+      const enter = () => setProjectGridHoverColumn(index);
+      const leave = () => setProjectGridHoverColumn();
+      item.addEventListener('pointerenter', enter);
+      item.addEventListener('pointerleave', leave);
+      return { item, enter, leave };
+    });
+    const listLeave = () => setProjectGridHoverColumn();
+    projectRotatorList.addEventListener('pointerleave', listLeave);
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', handleMouseMove);
+    updateCachedLayoutMetrics();
+    resize();
+    renderer.render(scene, camera);
+    markHomeSceneReady();
+    animationFrame = window.requestAnimationFrame(animate);
+
+    cleanupScene = () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', handleMouseMove);
+      dockHandlers.forEach(({ dock, move, leave }) => {
+        dock.removeEventListener('pointermove', move);
+        dock.removeEventListener('pointerleave', leave);
+      });
+      itemHandlers.forEach(({ item, enter, leave }) => {
+        item.removeEventListener('pointerenter', enter);
+        item.removeEventListener('pointerleave', leave);
+      });
+      projectRotatorList.removeEventListener('pointerleave', listLeave);
+      mount.replaceChildren();
+      geometry.dispose();
+      material.dispose();
+      renderer.dispose();
+      ['--intro-opacity', '--work-opacity', '--work-enter-y', '--radial-mask-opacity'].forEach((name) => {
+        documentStyle.removeProperty(name);
+      });
+      resetHomeSceneReady();
+    };
+    }).catch(() => {
+      if (!disposed) markHomeSceneReady();
+    });
 
     return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener('scroll', onScrollOrResize);
-      window.removeEventListener('resize', onScrollOrResize);
-      desktopQuery.removeEventListener('change', updateHeaderBlur);
+      disposed = true;
+      cleanupScene();
     };
   }, []);
 
-  const services = [
-    {
-      name: 'UI/UX Design',
-      icon: Layout,
-      description: 'Shape product flows, interface systems, and interaction details that make complex ideas feel clear and usable.',
-      className: 'md:col-span-2',
-      accent: 'from-[#FF5825]/14 via-white/5 to-transparent'
-    },
-    {
-      name: 'Brand Identity Design',
-      icon: Sparkles,
-      description: 'Build a distinctive visual language, logo system, and brand foundation that makes every touchpoint feel intentional.',
-      className: '',
-      accent: 'from-[#FF5825]/14 via-white/5 to-transparent'
-    },
-    {
-      name: 'Visual Design',
-      icon: Palette,
-      description: 'Create campaign visuals, digital assets, and polished compositions with a sharp eye for hierarchy and emotion.',
-      className: '',
-      accent: 'from-[#FF5825]/14 via-white/5 to-transparent'
-    },
-    {
-      name: 'Motion Graphics',
-      icon: Layers,
-      description: 'Bring stories to life with kinetic systems, launch assets, and lightweight animation concepts for modern brands.',
-      className: 'md:col-span-2',
-      accent: 'from-[#FF5825]/14 via-white/5 to-transparent'
-    }
-  ];
+  const openProject = (project: (typeof projects)[number], event: React.MouseEvent<HTMLButtonElement>) => {
+    const destination = `/portfolio/${encodeURIComponent(project.slug)}`;
+    const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const returnScrollY = window.scrollY || window.pageYOffset || 0;
 
-  useEffect(() => {
-    if (!isMobileViewport) return;
+    window.sessionStorage.setItem(
+      'xulei-project-return',
+      JSON.stringify({
+        slug: project.slug,
+        returnTo,
+        returnScrollY,
+        timestamp: Date.now(),
+      }),
+    );
 
-    const carouselTimer = window.setInterval(() => {
-      setActiveServiceIndex((currentIndex) => (currentIndex + 1) % services.length);
-    }, 2800);
-
-    return () => window.clearInterval(carouselTimer);
-  }, [isMobileViewport, services.length]);
-
-  useEffect(() => {
-    if (!isMobileViewport || !servicesCarouselRef.current) return;
-
-    const carousel = servicesCarouselRef.current;
-    const activeCard = carousel.children[activeServiceIndex] as HTMLElement | undefined;
-    if (!activeCard) return;
-
-    const centeredOffset = activeCard.offsetLeft - (carousel.clientWidth - activeCard.clientWidth) / 2;
-    carousel.scrollTo({
-      left: Math.max(centeredOffset, 0),
-      behavior: 'smooth',
+    runCirclePageTransition({
+      originX: event.clientX,
+      originY: event.clientY,
+      fallbackElement: event.currentTarget,
+      onCovered: () => navigate(destination, { state: { fromPortfolioTransition: true, returnTo, returnScrollY } }),
     });
-  }, [activeServiceIndex, isMobileViewport]);
-
-  const resetHomeButtonDock = (node: HTMLElement) => {
-    node.style.setProperty('--home-button-dock-x', '0px');
-    node.style.setProperty('--home-button-dock-y', '0px');
-    node.style.setProperty('--home-button-dock-scale', '1');
-  };
-
-  const handleHomeButtonPointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-
-    const node = event.currentTarget;
-    const rect = node.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const deltaX = event.clientX - centerX;
-    const deltaY = event.clientY - centerY;
-    const distance = Math.hypot(deltaX, deltaY);
-    const bound = Math.max(rect.width, rect.height) * 1.15;
-    const proximity = Math.max(0, 1 - distance / bound);
-    const x = (deltaX / rect.width) * 20 * proximity;
-    const y = (deltaY / rect.height) * 11 * proximity;
-    const scale = 1 + 0.085 * proximity;
-
-    node.style.setProperty('--home-button-dock-x', `${x.toFixed(2)}px`);
-    node.style.setProperty('--home-button-dock-y', `${y.toFixed(2)}px`);
-    node.style.setProperty('--home-button-dock-scale', scale.toFixed(3));
   };
 
   return (
-    <div className="relative overflow-x-hidden bg-black">
-      <PaperDesignBackground
-        className="fixed -left-2 -right-2 bottom-0 top-0 z-0 pointer-events-none origin-center lg:inset-0"
-        scale={1 + backgroundExitProgress * 5}
-        speed={isMobileTouching ? 0 : isMobileViewport ? 1.25 : 1}
-        maxPixelCount={isMobileViewport ? 720 * 1280 : 1920 * 1080}
-      />
-      <GradualBlur
-        target="page"
-        position="top"
-        height="7rem"
-        width="min(1280px, calc(100vw - 4rem))"
-        strength={2.5}
-        divCount={6}
-        curve="bezier"
-        exponential
-        opacity={1}
-        className="hidden lg:block"
-        style={{
-          zIndex: 55,
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          opacity: isHeaderBlurVisible ? 1 : 0,
-          transition: 'opacity 180ms ease-out',
-        }}
-      />
-      <div className="relative z-10">
-      {/* Hero Section - Black Background with Paper Design Shader */}
-      <section className="text-white min-h-screen flex items-center relative overflow-hidden">
-        <div className="w-full relative z-10 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              data-home-blur-content="true"
-              initial={{ opacity: 0, y: -50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-center">
-
-              <h1 className="text-[2.1rem] sm:text-[2.75rem] lg:text-[4.15rem] xl:text-[5rem] font-semibold leading-tight mb-7 px-4">
-                Your Next Design Inspiration
-                <br className="hidden md:block" />
-                {' — Xu Lei'}
-              </h1>
-              <p className="text-white/60 mb-9 leading-relaxed text-[15px] sm:text-[1.38rem] font-light max-w-5xl mx-auto px-4">
-                Welcome to my portfolio website of design works, let's explore the stories of inspiration through creation together.
-              </p>
-              <div className="flex justify-center mb-2 sm:mb-3 lg:mb-4 px-4">
-                <Link
-                  to="/portfolio"
-                  onClick={(event) => navigateWithTransition(event, '/portfolio')}
-                  onPointerMove={handleHomeButtonPointerMove}
-                  onPointerLeave={(event) => resetHomeButtonDock(event.currentTarget)}
-                  className="home-magnetic-button border border-white bg-transparent text-white hover:bg-white hover:text-black rounded-full font-semibold transition-all duration-200 text-center px-12 h-[72px] text-xl lg:text-[1.38rem] flex items-center justify-center w-[calc(100vw-128px)] max-w-none sm:h-20 sm:w-[374px] sm:max-w-[396px] sm:px-14">
-                  View Portfolio
-                </Link>
-              </div>
-            </motion.div>
+    <div ref={homeRef} className="current-home">
+      <section id="top" className="hero" role="banner">
+        <div ref={sceneRef} id="scene" />
+        <div className="gradient" />
+        <div className="radial-mask" />
+        <div className="content">
+          <div className="copy">
+            <h1>UI/UX Design</h1>
+            <p className="subtitle">This is Crazy Xu's personal website.</p>
+            <p className="description">Passionate about design, art, and storytelling. Every project tells a story.</p>
           </div>
         </div>
-      </section>
-
-      {/* Services Overview */}
-      <section data-home-blur-content="true" className="pb-4 pt-14 sm:py-16 lg:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12 lg:mb-16">
-
-            <h2 className="text-3xl sm:text-4xl font-semibold text-white mb-6">Design Services</h2>
-            <p className="text-base sm:text-lg text-white/60 max-w-4xl mx-auto">
-              I specialize in creating compelling visual experiences that elevate your brand 
-              and engage your audience. Every project is crafted with intention and creativity.
-            </p>
-          </motion.div>
-
-          <div className="-mx-4 md:hidden">
-            <div
-              ref={servicesCarouselRef}
-              className="flex h-[150px] gap-3 overflow-hidden px-4 [scrollbar-width:none] [touch-action:pan-y] [&::-webkit-scrollbar]:hidden"
-            >
-              {services.map((service, index) => {
-                const IconComponent = service.icon;
-                return (
-                  <motion.div
-                    key={service.name}
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    className="h-full w-[78%] shrink-0">
-                    <div className="group relative h-[150px] min-h-[150px] overflow-hidden rounded-[22px] border border-white/10 bg-[#050505]/55 p-5 shadow-[0_22px_70px_rgba(0,0,0,0.32)] backdrop-blur-md">
-                      <div className={`absolute inset-0 bg-gradient-to-br ${service.accent} opacity-45`} />
-                      <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-                      <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px)] [background-size:36px_36px]" />
-
-                      <div className="relative z-10 flex h-full flex-col justify-between gap-6">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-white/10 bg-[#FF5825] shadow-[0_12px_28px_rgba(255,88,37,0.35)]">
-                            <IconComponent className="h-5 w-5 text-white" />
-                          </div>
-                          <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white/45">
-                            0{index + 1}
-                          </span>
-                        </div>
-
-                        <h3 className="text-[18px] font-semibold leading-tight text-white">{service.name}</h3>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="hidden md:grid md:grid-flow-dense md:grid-cols-3 md:auto-rows-[minmax(190px,auto)] md:gap-4 lg:auto-rows-[minmax(260px,auto)] lg:gap-5">
-            {services.map((service, index) => {
-              const IconComponent = service.icon;
-              return (
-                <motion.div
-                  key={service.name}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className={`group relative min-h-[190px] overflow-hidden rounded-[22px] border border-white/10 bg-[#050505]/55 p-5 shadow-[0_22px_70px_rgba(0,0,0,0.32)] backdrop-blur-md transition-all duration-500 hover:border-white/20 hover:bg-[#080808]/65 lg:min-h-[220px] lg:rounded-[28px] lg:p-7 ${service.className}`}>
-
-                  <div className={`absolute inset-0 bg-gradient-to-br ${service.accent} opacity-45 transition-opacity duration-500 group-hover:opacity-65`} />
-                  <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-white/10 blur-3xl transition-transform duration-500 group-hover:scale-125" />
-                  <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px)] [background-size:36px_36px]" />
-
-                  <div className="relative z-10 flex h-full flex-col justify-between gap-5 lg:gap-8">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-[13px] border border-white/10 bg-[#FF5825] shadow-[0_12px_28px_rgba(255,88,37,0.35)] lg:h-12 lg:w-12 lg:rounded-2xl">
-                        <IconComponent className="h-[18px] w-[18px] text-white lg:h-6 lg:w-6" />
-                      </div>
-                      <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white/45 lg:px-3 lg:text-[11px]">
-                        0{index + 1}
-                      </span>
-                    </div>
-
-                    <div>
-                      <h3 className="text-[18px] font-semibold leading-tight text-white lg:text-2xl">{service.name}</h3>
-                      <p className="mt-4 hidden max-w-xl text-sm leading-7 text-white/60 lg:block">
-                        {service.description}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* USP Section */}
-      <section data-home-blur-content="true" className="pb-12 pt-4 sm:py-16 lg:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}>
-
-              <h2 className="text-3xl sm:text-4xl font-semibold text-white mb-6 lg:mb-8">Why Work With Me?</h2>
-              <div className="space-y-6">
-                <div className="flex items-start space-x-4">
-                  <Award className="h-6 w-6 text-[#FF5825] mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">7+ Years of Design Excellence</h3>
-                    <p className="text-white/60 text-sm">
-                      Proven track record of delivering exceptional design solutions for brands worldwide.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <Star className="h-6 w-6 text-[#FF5825] mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Award-Winning Creativity</h3>
-                    <p className="text-white/60 text-sm">
-                      Beautiful, innovative designs that captivate audiences and stand out from the crowd.
-                    </p>
-                  </div>
-                  </div>
-                <div className="flex items-start space-x-4">
-                  <Globe className="h-6 w-6 text-[#FF5825] mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Strategic Design Thinking</h3>
-                    <p className="text-white/60 text-sm">
-                      Data-driven design decisions that align with your business goals and user needs.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <Users className="h-6 w-6 text-[#FF5825] mt-1 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Collaborative Process</h3>
-                    <p className="text-white/60 text-sm">
-                      Transparent communication and close collaboration to bring your vision to life.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8 }}
-              className="relative order-first md:order-last">
-
-              <SplineRobotShowcase />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section data-home-blur-content="true" className="py-12 sm:py-16 lg:py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}>
-
-            <h2 className="text-3xl sm:text-4xl font-semibold text-white mb-6">
-              Ready to Bring Your Vision to Life?
-            </h2>
-            <p className="text-base sm:text-lg text-white/60 mb-8 max-w-3xl mx-auto">
-              Let's collaborate on creating stunning visual designs that perfectly capture 
-              your brand essence and resonate with your audience.
-            </p>
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
+        <p
+          ref={aboutPanelRef}
+          className="about-panel"
+          aria-label="I'm a UI/UX designer who enjoys making products feel simple, useful, and a little more human. I like playful details, clean systems, and the occasional weird idea that somehow works."
+        >
+          {aboutWords.map((word, index) => (
+            <span key={`${word}-${index}`} className="text-word" aria-hidden="true" style={{ '--word-index': index } as React.CSSProperties}>
+              {word}{index === aboutWords.length - 1 ? '' : '\u00a0'}
+            </span>
+          ))}
+        </p>
+        <section ref={workPanelRef} id="portfolio" className="work-panel" aria-label="Selected projects">
+          <div className="work-sticky">
+            <div className="work-header">
+              <h2 className="work-title home-content-dock">Selected projects, from idea to interface</h2>
               <Link
-                to="/contact"
-                onClick={(event) => navigateWithTransition(event, '/contact')}
-                onPointerMove={handleHomeButtonPointerMove}
-                onPointerLeave={(event) => resetHomeButtonDock(event.currentTarget)}
-                className="home-magnetic-button inline-flex w-full md:w-auto"
-              >
-                <ShimmerButton className="shadow-2xl rounded-full border-[#dedede] bg-[linear-gradient(110deg,#dedede,45%,#ffffff,55%,#dedede)] hover:bg-[linear-gradient(110deg,#dedede,45%,#ffffff,55%,#dedede)] transition-all duration-200 w-full text-black md:w-auto">
-                  <span className="text-center text-sm leading-none font-semibold tracking-tight whitespace-pre-wrap text-black lg:text-base flex items-center justify-center">
-                    Let's Collaborate
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </span>
-                </ShimmerButton>
-              </Link>
-              <Link
+                className="work-link home-content-dock"
                 to="/portfolio"
                 onClick={(event) => navigateWithTransition(event, '/portfolio')}
-                onPointerMove={handleHomeButtonPointerMove}
-                onPointerLeave={(event) => resetHomeButtonDock(event.currentTarget)}
-                className="home-magnetic-button border border-white bg-transparent text-white hover:bg-white hover:text-black px-8 h-12 flex items-center justify-center rounded-full font-semibold transition-all duration-200 text-center w-full md:w-auto">
-
-                View My Work
+                aria-label="See all selected projects"
+              >
+                See all
+                <svg className="work-link-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </Link>
             </div>
-          </motion.div>
-        </div>
+            <div className="work-divider" />
+            <div className="project-rotator" aria-label="Selected project previews">
+              <div ref={projectListRef} className="project-rotator-list">
+                {selectedProjects.map((project, index) => {
+                  const isMobileHiddenProject = mobileHiddenProjectSlugs.has(project.slug);
+                  return (
+                    <article
+                      className={`project-rotator-item${isMobileHiddenProject ? ' project-rotator-item-mobile-hidden' : ''}`}
+                      data-project-index={index}
+                      key={project.slug}
+                    >
+                    <button
+                      className="portfolio-project-image-dock project-rotator-image-dock"
+                      type="button"
+                      data-project-url={`/portfolio/${encodeURIComponent(project.slug)}`}
+                      data-project-slug={project.slug}
+                      aria-label={`View ${project.title} project`}
+                      onClick={(event) => openProject(project, event)}
+                      onPointerMove={(event) => updateMagneticDock(event.currentTarget, event, 'project-image-dock', { bound: 2.2, x: 8, y: 7, scale: 0.03 })}
+                      onPointerLeave={(event) => resetDock(event.currentTarget, 'project-image-dock')}
+                    >
+                      <img
+                        className="portfolio-project-image project-rotator-image"
+                        src={publicAsset(project.cover || project.images.desktop)}
+                        alt={`${project.title} project preview`}
+                        loading="eager"
+                        decoding="async"
+                      />
+                    </button>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+        <footer className="site-footer" aria-label="Footer">
+          <div className="site-footer-inner">
+            <section>
+              <h3 className="site-footer-title home-content-dock">Crazy Master Xu</h3>
+              <p className="site-footer-copy home-content-dock">
+                Welcome to my portfolio website of design works, let's explore the stories of inspiration through creation together.
+              </p>
+              <div className="site-footer-contact">
+                <div className="site-footer-contact-item home-content-dock">
+                  <svg className="site-footer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 6h16v12H4V6Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                    <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                  </svg>
+                  <span>xuleixulei2021@qq.com</span>
+                </div>
+                <div className="site-footer-contact-item home-content-dock">
+                  <svg className="site-footer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M6.6 3.8 9.3 4.4l1.2 4-1.8 1.2c.9 1.9 2.4 3.4 4.3 4.4l1.3-1.8 4 1.2.6 2.7c.2.8-.2 1.6-1 1.9-2 .8-4.8.2-7.5-1.5-2.2-1.4-4.1-3.3-5.5-5.5-1.7-2.7-2.3-5.5-1.5-7.5.3-.8 1.1-1.2 1.9-1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                  </svg>
+                  <span>18406593255</span>
+                </div>
+                <div className="site-footer-contact-item home-content-dock">
+                  <svg className="site-footer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                    <path d="M12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                  <span>China, Shenzhen</span>
+                </div>
+                <a className="site-footer-link home-content-dock" href="https://www.zcool.com.cn/u/24205250" target="_blank" rel="noreferrer">
+                  <svg className="site-footer-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M7 17 17 7M17 7H8M17 7v9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span>zcool.com.cn/u/24205250</span>
+                </a>
+              </div>
+            </section>
+            <nav aria-label="Quick links">
+              <h4 className="site-footer-heading home-content-dock">Quick Links</h4>
+              <ul className="site-footer-list">
+                <li><Link className="site-footer-link home-content-dock" to="/" onClick={(event) => navigateWithTransition(event, '/')}>Home</Link></li>
+                <li><Link className="site-footer-link home-content-dock" to="/contact" onClick={(event) => navigateWithTransition(event, '/contact')}>Contact</Link></li>
+                <li><Link className="site-footer-link home-content-dock" to="/portfolio" onClick={(event) => navigateWithTransition(event, '/portfolio')}>Portfolio</Link></li>
+              </ul>
+            </nav>
+            <section>
+              <h4 className="site-footer-heading home-content-dock">Services</h4>
+              <ul className="site-footer-list">
+                <li><span className="site-footer-service home-content-dock">Full-stack UI/UX design (app, web, data visualization)</span></li>
+                <li><span className="site-footer-service home-content-dock">B-end complex system design</span></li>
+                <li><span className="site-footer-service home-content-dock">Motion Effect Design</span></li>
+              </ul>
+            </section>
+          </div>
+          <div className="site-footer-rule" />
+          <div className="site-footer-bottom">
+            <span className="home-content-dock">© 2026 Crazy Master Xu. All rights reserved.</span>
+            <div className="site-footer-legal">
+              <Link className="site-footer-link home-content-dock" to="/privacy" onClick={(event) => navigateWithTransition(event, '/privacy')}>Privacy Policy</Link>
+              <Link className="site-footer-link home-content-dock" to="/terms" onClick={(event) => navigateWithTransition(event, '/terms')}>Terms of Service</Link>
+            </div>
+          </div>
+        </footer>
       </section>
-      </div>
-    </div>);
-
-};
-
-export default HomePage;
+    </div>
+  );
+}

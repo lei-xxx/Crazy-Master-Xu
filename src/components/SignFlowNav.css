@@ -1,3 +1,56 @@
+.sign-flow-header {
+  position: fixed;
+  left: 50%;
+  top: 24px;
+  z-index: 70;
+  display: flex;
+  width: calc(100% - 32px);
+  transform: translateX(-50%);
+  flex-direction: column;
+  align-items: center;
+  color: #ffffff;
+  transition:
+    opacity 300ms ease,
+    transform 300ms ease;
+}
+
+.sign-flow-header-inner {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.sign-flow-menu-button {
+  display: inline-flex;
+  width: 46px;
+  height: 46px;
+  margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease,
+    transform 220ms ease;
+}
+
+.sign-flow-menu-button svg {
+  width: 24px;
+  height: 24px;
+}
+
+.sign-flow-desktop-logo,
+.sign-flow-desktop-nav {
+  display: none;
+}
+
 .sign-flow-nav-link {
   height: 24px;
   font-size: 18px;
@@ -37,42 +90,95 @@
   white-space: nowrap;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 767px) {
+  header.sign-flow-header {
+    top: 24px;
+    width: calc(100% - 32px);
+    padding: 0 !important;
+    overflow: visible;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  header.sign-flow-header::before,
+  header.sign-flow-header::after {
+    content: none;
+  }
+
   .sign-flow-tablet-menu {
+    --menu-origin-x: calc(100vw - 39px);
+    --menu-origin-y: 47px;
+    --menu-spread-size: 0px;
     visibility: hidden;
     pointer-events: none;
-    padding: 14px;
+    padding: 0;
+    background: transparent;
+  }
+
+  .sign-flow-tablet-spread {
+    position: absolute;
+    left: var(--menu-origin-x);
+    top: var(--menu-origin-y);
+    z-index: 0;
+    width: var(--menu-spread-size);
+    height: var(--menu-spread-size);
+    border-radius: 50%;
+    background: radial-gradient(circle, #000000 0 calc(100% - 64px), rgba(0, 0, 0, 0.82) calc(100% - 36px), rgba(0, 0, 0, 0) 100%);
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0);
+    transform-origin: center;
+    will-change: transform;
   }
 
   .sign-flow-tablet-panel {
-    width: 82vw;
-    margin-left: auto;
-    transform: translate3d(110%, 0, 0) rotate(0deg);
-    will-change: transform, opacity;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    margin-left: 0;
+    transform: none;
+    will-change: opacity;
   }
 
   .sign-flow-tablet-menu-card {
-    height: calc((100vh - 36px) * 0.72);
+    height: auto;
     min-height: 0;
-    padding: 116px 28px 40px;
-    border-radius: 18px;
+    padding: 116px 28px 48px;
+    border-radius: 0;
+    background: transparent !important;
   }
 
   .sign-flow-tablet-project-card {
-    margin-top: 16px;
-    height: calc((100vh - 36px) * 0.28 - 16px);
-    border-radius: 18px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: max(28px, env(safe-area-inset-bottom));
+    height: auto;
+    padding: 0 28px;
+    border-radius: 0;
   }
 
   .sign-flow-tablet-link {
+    color: rgba(255, 255, 255, 0.6) !important;
     opacity: 0;
-    transform: translateX(-18px);
+    transform: none;
+    transition: color 180ms ease;
+  }
+
+  .sign-flow-tablet-link.is-active {
+    color: #ffffff !important;
   }
 
   .sign-flow-tablet-cta {
-    height: 100%;
+    height: auto;
+    min-height: 72px;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
     opacity: 0;
-    transform: translateY(8px);
+    transform: none;
   }
 }
 
@@ -92,6 +198,7 @@
   }
 
   .sign-flow-tablet-project-card {
+    bottom: max(32px, env(safe-area-inset-bottom));
     height: 72px !important;
   }
 
@@ -106,22 +213,36 @@
   }
 }
 
-@media (min-width: 768px) and (max-width: 1023px) {
-  .sign-flow-tablet-menu {
-    padding: 18px;
+@media (min-width: 768px) {
+  .sign-flow-header {
+    left: 0;
+    top: 32px;
+    width: 100%;
+    transform: none;
+    padding: 0 32px;
   }
 
-  .sign-flow-tablet-panel {
-    width: 48vw;
+  .sign-flow-header-inner {
+    width: min(100%, 1280px);
+    margin: 0 auto;
+    padding: 0;
   }
 
-  .sign-flow-tablet-menu-card {
-    height: calc((100vh - 36px) * 0.72);
-    padding: 160px 48px 56px;
+  .sign-flow-desktop-logo {
+    display: flex;
   }
-}
 
-@media (min-width: 1024px) {
+  .sign-flow-desktop-nav {
+    display: flex;
+    align-items: center;
+    gap: 48px;
+    margin-left: auto;
+  }
+
+  .sign-flow-menu-button {
+    display: none;
+  }
+
   header.sign-flow-header {
     position: fixed;
     overflow: visible;
@@ -152,5 +273,75 @@
     border: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
+  }
+}
+
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sign-flow-desktop-nav {
+    gap: 12px;
+  }
+
+  .sign-flow-header.sign-flow-project-detail-route,
+  .sign-flow-tablet-menu.sign-flow-project-detail-route {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .sign-flow-logo-link img {
+    display: block;
+    height: 48px;
+    width: auto;
+  }
+
+  .sign-flow-nav-link {
+    --nav-link-dock-x: 0px;
+    --nav-link-dock-y: 0px;
+    --nav-link-dock-scale: 1;
+    display: inline-flex;
+    height: 44px;
+    align-items: center;
+    overflow: visible;
+    color: inherit;
+    font-size: 18px;
+    line-height: 44px;
+    text-decoration: none;
+    transform: translate3d(var(--nav-link-dock-x), var(--nav-link-dock-y), 0) scale(var(--nav-link-dock-scale));
+    transform-origin: 50% 50%;
+    transition:
+      color 200ms ease,
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+
+  .sign-flow-nav-track {
+    display: flex;
+    height: 44px;
+    flex-direction: column;
+    transform: none !important;
+    transition: none;
+  }
+
+  .sign-flow-nav-link:hover .sign-flow-nav-track {
+    transform: none !important;
+  }
+
+  .sign-flow-nav-line {
+    display: flex;
+    height: 44px;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.42) !important;
+    font-size: 18px;
+    line-height: 44px;
+    white-space: nowrap;
+  }
+
+  .sign-flow-nav-line:last-child {
+    display: none;
+  }
+
+  .sign-flow-nav-link:hover .sign-flow-nav-line {
+    color: #ffffff !important;
   }
 }

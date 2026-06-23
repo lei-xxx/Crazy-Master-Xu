@@ -40,7 +40,7 @@ function AppContent() {
           <Route path="/contact" element={<ContactPage />} />
         </Routes>
       </main>
-      <Footer />
+      {location.pathname !== '/' && <Footer />}
       <StartupLoader />
       <Toaster position="top-right" />
     </div>

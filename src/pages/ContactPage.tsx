@@ -32,9 +32,6 @@ const ContactPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
               className="text-center">
-
-              <h2 className="mb-10 text-[29px] font-semibold text-white lg:mb-16 lg:text-[32px]">Get In Touch</h2>
-              
               <div className="space-y-10 lg:space-y-14">
                 <div>
                   <h3 className="mb-5 text-[16px] font-semibold text-white lg:mb-7 lg:text-[18px]">Email</h3>
