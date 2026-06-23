@@ -1148,7 +1148,7 @@
     <header class="site-nav" aria-label="Primary navigation">
       <div class="site-nav-inner">
         <a class="site-logo" href="#top" aria-label="Crazy Xu Home">
-          <img src="assets/xulei-wordmark-logo.png" alt="Crazy Xu" />
+          <img src="%BASE_URL%xulei-wordmark-logo.png" alt="Crazy Xu" />
         </a>
         <nav class="site-nav-links" aria-label="Desktop navigation">
           <a class="site-nav-link" href="#top">
@@ -1294,6 +1294,7 @@
     <script type="module">
       import * as THREE from "https://unpkg.com/three@0.164.1/build/three.module.js";
       import { projects } from "/src/data/projects.ts";
+      import { runCirclePageTransition } from "/src/lib/pageTransition.ts";
 
       const mount = document.querySelector("#scene");
       const aboutPanel = document.querySelector(".about-panel");
@@ -1677,90 +1678,6 @@
         document.body.style.overflow = "";
       }
 
-      function runCirclePageTransition(url, originX, originY, fallbackElement, onCovered) {
-        const previousBodyOverflow = document.body.style.overflow;
-        const triggerRect = fallbackElement?.getBoundingClientRect();
-        const resolvedOriginX = originX ?? (triggerRect ? triggerRect.left + triggerRect.width / 2 : window.innerWidth / 2);
-        const resolvedOriginY = originY ?? (triggerRect ? triggerRect.top + triggerRect.height / 2 : window.innerHeight / 2);
-        const maxRadius = Math.ceil(Math.hypot(
-          Math.max(resolvedOriginX, window.innerWidth - resolvedOriginX),
-          Math.max(resolvedOriginY, window.innerHeight - resolvedOriginY)
-        ));
-        const finalSize = maxRadius * 2;
-        const transitionCircle = document.createElement("div");
-        const transitionMark = document.createElement("img");
-
-        try {
-          window.sessionStorage.setItem("xulei-startup-loader-seen", "true");
-        } catch {
-          // Session storage can be unavailable in strict privacy contexts.
-        }
-
-        document.body.style.overflow = "hidden";
-        transitionCircle.style.cssText = [
-          "position:fixed",
-          `left:${resolvedOriginX}px`,
-          `top:${resolvedOriginY}px`,
-          "width:1px",
-          "height:1px",
-          "z-index:90",
-          "border-radius:9999px",
-          "background:#000",
-          "pointer-events:none",
-          "overflow:hidden",
-          "opacity:1",
-          "will-change:left,top,width,height,opacity",
-          "transition:left 620ms cubic-bezier(.22,1,.36,1), top 620ms cubic-bezier(.22,1,.36,1), width 620ms cubic-bezier(.22,1,.36,1), height 620ms cubic-bezier(.22,1,.36,1), opacity 280ms cubic-bezier(.22,1,.36,1)"
-        ].join(";");
-        transitionMark.src = withSiteBase("assets/transition-assets/xulei-transition.png");
-        transitionMark.alt = "";
-        transitionMark.style.cssText = [
-          "position:fixed",
-          "left:50%",
-          "top:50%",
-          "z-index:91",
-          "width:min(69.6vw,320px)",
-          "height:auto",
-          "transform:translate(-50%,-50%) scale(1)",
-          "opacity:1",
-          "pointer-events:none",
-          "will-change:opacity,transform",
-          "transition:opacity 280ms cubic-bezier(.22,1,.36,1), transform 280ms cubic-bezier(.22,1,.36,1)"
-        ].join(";");
-
-        document.body.appendChild(transitionCircle);
-        document.body.appendChild(transitionMark);
-
-        window.requestAnimationFrame(() => {
-          transitionCircle.style.left = `${resolvedOriginX - maxRadius}px`;
-          transitionCircle.style.top = `${resolvedOriginY - maxRadius}px`;
-          transitionCircle.style.width = `${finalSize}px`;
-          transitionCircle.style.height = `${finalSize}px`;
-        });
-
-        window.setTimeout(() => {
-          if (typeof onCovered === "function") {
-            onCovered();
-
-            window.requestAnimationFrame(() => {
-              window.requestAnimationFrame(() => {
-                transitionCircle.style.opacity = "0";
-                transitionMark.style.opacity = "0";
-                transitionMark.style.transform = "translate(-50%,-50%) scale(1.02)";
-
-                window.setTimeout(() => {
-                  transitionCircle.remove();
-                  transitionMark.remove();
-                  document.body.style.overflow = previousBodyOverflow;
-                }, 340);
-              });
-            });
-            return;
-          }
-
-          window.location.href = url;
-        }, 620);
-      }
 
       function normalizePathname(pathname) {
         return pathname.replace(/\/$/, "") || "/";
@@ -1954,13 +1871,21 @@
 
         event.preventDefault();
         const nextPath = `${destinationUrl.pathname}${destinationUrl.search}${destinationUrl.hash}`;
-        runCirclePageTransition(
-          nextPath,
-          event.clientX,
-          event.clientY,
-          link,
-          isShellRoute(destinationUrl.pathname) ? () => openShellRoute(nextPath, "push") : undefined
-        );
+        const opensShellRoute = isShellRoute(destinationUrl.pathname);
+        runCirclePageTransition({
+          originX: event.clientX,
+          originY: event.clientY,
+          fallbackElement: link,
+          onCovered: () => {
+            if (opensShellRoute) {
+              openShellRoute(nextPath, "push");
+              return;
+            }
+
+            window.location.href = nextPath;
+          },
+          holdAfterCovered: !opensShellRoute,
+        });
       }
 
       document.querySelectorAll("a[href]").forEach((link) => {
@@ -2134,13 +2059,22 @@
           );
         }
 
-        runCirclePageTransition(
-          url,
-          event.clientX,
-          event.clientY,
-          node,
-          isShellRoute(new URL(url, window.location.origin).pathname) ? () => openShellRoute(url, "push", { forceReload: true }) : undefined
-        );
+        const destinationUrl = new URL(url, window.location.origin);
+        const opensShellRoute = isShellRoute(destinationUrl.pathname);
+        runCirclePageTransition({
+          originX: event.clientX,
+          originY: event.clientY,
+          fallbackElement: node,
+          onCovered: () => {
+            if (opensShellRoute) {
+              openShellRoute(url, "push", { forceReload: true });
+              return;
+            }
+
+            window.location.href = url;
+          },
+          holdAfterCovered: !opensShellRoute,
+        });
       }
 
       function setProjectGridHoverColumn(index) {
