@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+  const isGitHubPages = process.env.GITHUB_PAGES === 'true'
   const multiPageInput = {
     main: 'index.html',
     portfolio: 'portfolio/index.html',
@@ -43,7 +44,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: '/',
+    base: isGitHubPages ? '/Crazy-Master-Xu/' : '/',
     build,
     esbuild,
     define,
