@@ -197,7 +197,7 @@ body, p, div, span, a, li, td, th, input, textarea, button {
 
   .site-footer-rule {
     margin: 32px 0;
-    background: #1f2937;
+    background: rgba(255, 255, 255, 0.16);
   }
 
   .site-footer-bottom {
