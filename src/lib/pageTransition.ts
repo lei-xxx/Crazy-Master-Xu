@@ -7,6 +7,8 @@ type CirclePageTransitionOptions = {
   onCovered: () => void;
   onFinish?: () => void;
   holdAfterCovered?: boolean;
+  preload?: () => Promise<unknown> | void;
+  maxPreloadWaitMs?: number;
 };
 
 const STARTUP_LOADER_SESSION_KEY = 'xulei-startup-loader-seen';
@@ -18,6 +20,9 @@ const waitForNextPaint = (callback: () => void) => {
 };
 
 const HOLD_FALLBACK_MS = 1600;
+const PRELOAD_WAIT_FALLBACK_MS = 520;
+
+const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
 export const runCirclePageTransition = ({
   originX,
@@ -26,6 +31,8 @@ export const runCirclePageTransition = ({
   onCovered,
   onFinish,
   holdAfterCovered = false,
+  preload,
+  maxPreloadWaitMs = PRELOAD_WAIT_FALLBACK_MS,
 }: CirclePageTransitionOptions) => {
   const previousBodyOverflow = document.body.style.overflow;
   const triggerRect = fallbackElement?.getBoundingClientRect();
@@ -44,6 +51,10 @@ export const runCirclePageTransition = ({
   } catch {
     // Session storage can be unavailable in strict privacy contexts.
   }
+
+  const preloadPromise = preload
+    ? Promise.resolve().then(preload).catch(() => undefined)
+    : Promise.resolve();
 
   document.body.style.overflow = 'hidden';
 
@@ -109,18 +120,20 @@ export const runCirclePageTransition = ({
   });
 
   window.setTimeout(() => {
-    try {
-      onCovered();
-    } catch (error) {
+    Promise.race([preloadPromise, wait(maxPreloadWaitMs)]).then(() => {
+      try {
+        onCovered();
+      } catch (error) {
+        finish();
+        throw error;
+      }
+
+      if (holdAfterCovered) {
+        window.setTimeout(finish, HOLD_FALLBACK_MS);
+        return;
+      }
+
       finish();
-      throw error;
-    }
-
-    if (holdAfterCovered) {
-      window.setTimeout(finish, HOLD_FALLBACK_MS);
-      return;
-    }
-
-    finish();
+    });
   }, 620);
 };

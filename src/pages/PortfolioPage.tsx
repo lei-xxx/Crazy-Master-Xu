@@ -7,6 +7,7 @@ import GradualBlur from '@/components/GradualBlur';
 import { ButtonColorful } from '@/components/ui/button-colorful';
 import { projects, type Project } from '@/data/projects';
 import { runCirclePageTransition } from '@/lib/pageTransition';
+import { preloadProjectDetailResources } from '@/lib/routePreload';
 import { publicAsset } from '@/lib/utils';
 import './PortfolioPage.css';
 
@@ -48,21 +49,6 @@ const PortfolioPage = () => {
     });
   }, [location.state]);
 
-  const preloadProjectDetailImages = (project: Project) => {
-    const sources = [
-      project.cover,
-      project.images.desktop,
-    ];
-
-    Array.from(new Set(sources.filter(Boolean)))
-      .forEach((source) => {
-        const image = new Image();
-        image.decoding = 'async';
-        image.loading = 'eager';
-        image.src = publicAsset(source);
-      });
-  };
-
   const animateProjectNavigation = (project: Project, triggerElement?: HTMLElement, clickPoint?: { x: number; y: number }) => {
     if (isProjectTransitioningRef.current) return;
 
@@ -80,13 +66,13 @@ const PortfolioPage = () => {
     }
 
     isProjectTransitioningRef.current = true;
-    preloadProjectDetailImages(project);
 
     runCirclePageTransition({
       originX: clickPoint?.x,
       originY: clickPoint?.y,
       fallbackElement: triggerElement,
       onCovered: () => navigate(`/portfolio/${project.slug}`, { state: { fromPortfolioTransition: true, returnTo, returnScrollY } }),
+      preload: () => preloadProjectDetailResources(project),
       onFinish: () => {
         isProjectTransitioningRef.current = false;
       },

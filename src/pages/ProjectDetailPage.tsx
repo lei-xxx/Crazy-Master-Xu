@@ -5,6 +5,7 @@ import { ChevronLeft, FileText, Play } from 'lucide-react';
 import GradualBlur from '@/components/GradualBlur';
 import { projects } from '@/data/projects';
 import { runCirclePageTransition } from '@/lib/pageTransition';
+import { preloadRouteResources } from '@/lib/routePreload';
 import { useAdaptiveButtonTone } from '@/lib/useAdaptiveButtonTone';
 import { closeShellRoute, isInsideShellFrame, publicAsset, toRouterPath } from '@/lib/utils';
 
@@ -148,6 +149,7 @@ const ProjectDetailPage = ({ initialSlug }: ProjectDetailPageProps) => {
       fallbackElement: triggerElement,
       onCovered: navigateBack,
       holdAfterCovered: usesDocumentNavigation && !isShellFrame,
+      preload: () => (returnTo ? preloadRouteResources(returnTo) : undefined),
       onFinish: () => {
         isBackTransitioningRef.current = false;
       },

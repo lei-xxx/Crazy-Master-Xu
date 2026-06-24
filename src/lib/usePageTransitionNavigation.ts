@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { MouseEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { runCirclePageTransition } from '@/lib/pageTransition';
+import { preloadRouteResources } from '@/lib/routePreload';
 
 type TransitionClickOptions = {
   beforeNavigate?: () => void;
@@ -61,6 +62,7 @@ export function usePageTransitionNavigation() {
       originY: event.clientY,
       fallbackElement: event.currentTarget,
       onCovered: go,
+      preload: () => preloadRouteResources(destination),
     });
 
     return true;

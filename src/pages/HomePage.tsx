@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { projects } from '@/data/projects';
 import { markHomeSceneReady, preloadHomeSceneModule, resetHomeSceneReady } from '@/lib/homeScenePreload';
 import { runCirclePageTransition } from '@/lib/pageTransition';
+import { preloadProjectDetailResources } from '@/lib/routePreload';
 import { publicAsset, toRouterPath } from '@/lib/utils';
 import { usePageTransitionNavigation } from '@/lib/usePageTransitionNavigation';
 import './HomePage.css';
@@ -435,6 +436,7 @@ export default function HomePage() {
       originY: event.clientY,
       fallbackElement: event.currentTarget,
       onCovered: () => navigate(destination, { state: { fromPortfolioTransition: true, returnTo, returnScrollY, returnScrollTarget } }),
+      preload: () => preloadProjectDetailResources(project),
     });
   };
 
