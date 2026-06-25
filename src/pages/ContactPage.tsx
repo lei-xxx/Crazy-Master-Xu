@@ -1,10 +1,18 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { publicAsset } from '@/lib/utils';
+import './ContactPage.css';
 
 const ContactPage = () => {
   return (
     <div className="relative overflow-hidden pt-16 bg-black">
+      <img
+        className="contact-spotlight-right"
+        src={publicAsset('/effects/contact-spotlight-right.png')}
+        alt=""
+        aria-hidden="true"
+      />
       <div className="relative z-10">
       {/* Hero Section */}
       <section className="text-white pb-8 pt-16 lg:py-20">

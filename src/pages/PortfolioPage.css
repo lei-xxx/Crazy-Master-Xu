@@ -1,3 +1,27 @@
+
+.portfolio-spotlight-right {
+  display: none;
+  position: fixed;
+  top: -96px;
+  left: 50%;
+  z-index: 1;
+  width: min(128vw, 1960px);
+  max-width: none;
+  height: auto;
+  transform: translate3d(-50%, 0, 0);
+  opacity: 1;
+  filter: brightness(1.2);
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+@media (min-width: 1200px) {
+  .portfolio-spotlight-right {
+    display: block;
+  }
+}
+
 .portfolio-filter-dock-item {
   --filter-dock-x: 0px;
   --filter-dock-scale: 1;

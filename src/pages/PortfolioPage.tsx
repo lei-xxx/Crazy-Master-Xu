@@ -233,6 +233,12 @@ const PortfolioPage = () => {
         opacity={1}
         style={{ zIndex: 55 }}
       />
+      <img
+        className="portfolio-spotlight-right"
+        src={publicAsset('/effects/contact-spotlight-right.png')}
+        alt=""
+        aria-hidden="true"
+      />
       <div className="relative z-10">
       {/* Hero Section */}
       <section className="text-white pb-8 pt-16 lg:py-20">
